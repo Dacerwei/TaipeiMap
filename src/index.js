@@ -1,11 +1,13 @@
 import React from 'react';
 import { render } from 'react-dom';
+import LeafletMap from './components/Map';
+import './styles.css';
 
 export default class App extends React.Component {
 	render(){
 		return (
-			<div>
-				<h1>webpack works!</h1>
+			<div id="map">
+				<LeafletMap />
 			</div>
 		);
 	}
