@@ -8,7 +8,6 @@ export default class App extends React.Component {
 		return (
 			<div id="map">
 				<LeafletMap />
-				
 			</div>
 		);
 	}

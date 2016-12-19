@@ -55,3 +55,24 @@ html, body {
   display: block;
   margin: 0 auto;
 }
+
+.slideInFromRightSide-enter {
+  right: -30%;
+}
+
+.slideInFromRightSide-enter .slideInFromRightSide-enter-active {
+  transition: right 2000ms ease-in;
+}
+
+#chartArea {
+  height: 100%;
+  width: 30%;
+  position: absolute;
+  right: 0px;
+  z-index: 50;
+  background-color: hsla(240,100%,0%,0.8);
+}
+
+#chartArea #charts {
+  height: 100%;
+}

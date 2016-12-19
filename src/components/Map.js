@@ -3,7 +3,11 @@ import L from 'leaflet';
 
 import 'leaflet/dist/leaflet.css';
 import Filter from './Filter';
-import geojson from 'json!../mrt.geojson';
+import ExampleChart from './GoogleChart';
+import mrtGeojson from 'json!../mrt.geojson';
+import youbikeGeojson from 'json!../youbike.geojson';
+import ReactCSSTransitionGroup from 'react-addons-css-transition-group';
+
 
 let config = {};
 
@@ -38,18 +42,24 @@ export default class LeafletMap extends React.Component {
 		this.state = {
 			map: null,
 			tileLayer: null,
-			geojsonLayer: null,
-			geojson: null,
+			mrtGeojsonLayer: null,
+			mrtGeojson: null,
+			youbikeGeojsonLayer: null,
+			youbikeGeojson: null,
 			mrtLinesFilter: '*',
-			numStations: null
+			numStations: null,
+			displayChart: false
 		};
 
 		this._mapNode = null;
 		this.updateMap = this.updateMap.bind(this);
 		this.onEachFeature = this.onEachFeature.bind(this);
-		this.pointToLayer = this.pointToLayer.bind(this);
+		this.mrtPointToLayer = this.mrtPointToLayer.bind(this);
 		this.filterFeatures = this.filterFeatures.bind(this);
 		this.filterGeoJSONLayer = this.filterGeoJSONLayer.bind(this);
+		this.youbikePointToLayer = this.youbikePointToLayer.bind(this);
+		this.onMarkClick = this.onMarkClick.bind(this);
+		this.onMapClick = this.onMapClick.bind(this);
 	}
  
 	componentDidMount() {
@@ -64,8 +74,9 @@ export default class LeafletMap extends React.Component {
 	componentDidUpdate(prevProps, prevState) {
 		console.log('componoentDidUpdate');
 
-		if (this.state.geojson && this.state.map && !this.state.geojsonLayer) {
-			this.addGeoJSONLayer(this.state.geojson);
+		if (this.state.mrtGeojson && this.state.map && !this.state.mrtGeojsonLayer) {
+			this.addGeoJSONLayer(this.state.mrtGeojson);
+			this.addGeoJSONLayer(this.state.youbikeGeojson);
 		}
 
 		if (this.state.mrtLinesFilter !== prevState.mrtLinesFilter) {
@@ -81,8 +92,9 @@ export default class LeafletMap extends React.Component {
 	getData() {
 		console.log('getData');
 		this.setState({
-			numStations: geojson.features.length,
-			geojson: geojson
+			numStations: mrtGeojson.features.length,
+			mrtGeojson: mrtGeojson,
+			youbikeGeojson: youbikeGeojson
 		});
 	}
 
@@ -101,24 +113,31 @@ export default class LeafletMap extends React.Component {
 
 	addGeoJSONLayer(geojson) {
 		console.log('addGeoJSONLayer');
-		console.log(mrtLineNames);
-		const geojsonLayer = L.geoJSON(geojson, {
-			onEachFeature: this.onEachFeature,
-			pointToLayer: this.pointToLayer,
-			filter: this.filterFeatures
-		});
+		if(geojson.type === 'mrtStations'){
+			const mrtGeojsonLayer = L.geoJSON(geojson, {
+				onEachFeature: this.onEachFeature,
+				pointToLayer: this.mrtPointToLayer,
+				filter: this.filterFeatures
+			});
 
-		geojsonLayer.addTo(this.state.map);
+			mrtGeojsonLayer.addTo(this.state.map);
 
-		this.setState({ geojsonLayer});
+			this.setState({ mrtGeojsonLayer});
+		}else if(geojson.type === 'youbikeSites'){
+			const youbikeGeojsonLayer = L.geoJSON(geojson, {
+				pointToLayer: this.youbikePointToLayer
+			});
 
+			youbikeGeojsonLayer.addTo(this.state.map);
 
+			this.setState({ youbikeGeojsonLayer });
+		}
 	}
 
 	filterGeoJSONLayer() {
 		console.log("filterGeoJSONLayer");
-		this.state.geojsonLayer.clearLayers();
-		this.state.geojsonLayer.addData(geojson);
+		this.state.mrtGeojsonLayer.clearLayers();
+		this.state.mrtGeojsonLayer.addData(mrtGeojson);
 		// this.zoomToFeature(this.state.geojsonLayer);
 	}
 
@@ -134,10 +153,9 @@ export default class LeafletMap extends React.Component {
 		}
 	}
 
-	pointToLayer(feature, latlng) {
-		console.log("pointToLayer");
+	mrtPointToLayer(feature, latlng) {
 		var markerParams = {
-			radius: 4,
+			radius: 5,
 			fillColor: 'orange',
 			color: '#fff',
 			weight: 1,
@@ -148,8 +166,20 @@ export default class LeafletMap extends React.Component {
 		return L.circleMarker(latlng, markerParams);
 	}
 
+	youbikePointToLayer(feature, latlng) {
+		var markerParams = {
+			radius: 3,
+			fillColor: 'darkred',
+			color: '#fff',
+			weight: 1,
+			opacity: 0.5,
+			fillOpacity: 0.8
+		};
+
+		return L.circleMarker(latlng, markerParams);
+	}
+
 	onEachFeature(feature, layer) {
-		console.log("onEachFeature");
 		if(feature.properties && feature.properties.name && feature.properties.line) {
 			if(mrtLineNames.length < 7) {
 
@@ -157,7 +187,7 @@ export default class LeafletMap extends React.Component {
 					if(mrtLineNames.indexOf(line) === -1) mrtLineNames.push(line);
 				});
 
-				if(this.state.geojson.features.indexOf(feature) === this.state.numStations - 1) {
+				if(this.state.mrtGeojson.features.indexOf(feature) === this.state.numStations - 1) {
 					mrtLineNames.sort();
 					mrtLineNames.unshift('All lines');
 				}
@@ -165,7 +195,18 @@ export default class LeafletMap extends React.Component {
 
 			const popupContent = "<h3>${feature.properties.name}</h3><strong>MRT line:</strong>${feature.properties.line}";
 			layer.bindPopup(popupContent);
+			layer.on('click',this.onMarkClick);
 		}
+	}
+
+	onMarkClick(e) {
+		console.log(e.target.feature.properties.name);
+		this.setState({displayChart: true});
+	}
+
+	onMapClick(e) {
+		console.log("chart close");
+		this.setState({displayChart: false});
 	}
 
 	init(id) {
@@ -178,6 +219,7 @@ export default class LeafletMap extends React.Component {
 
 		const tileLayer = L.tileLayer(config.tileLayer.uri, config.tileLayer.params).addTo(map);
 		this.setState({map, tileLayer});
+		map.on('click',this.onMapClick);
 
 	}
 
@@ -193,6 +235,17 @@ export default class LeafletMap extends React.Component {
 						<Filter lines={ mrtLineNames }
 								curFilter={ mrtLinesFilter }
 								filterLines={ this.updateMap } />
+				}
+				{
+					this.state.displayChart &&
+					<ReactCSSTransitionGroup 
+						transitionName="slideInFromRightSide"
+						transitionEnterTimeout={2000}
+						transitionLeaveTimeout={300}>
+						<div id="chartArea">
+							<ExampleChart />
+						</div>
+					</ReactCSSTransitionGroup>
 				}
 				<div ref={(node) => this._mapNode = node} id="map" />
 			</div>

@@ -15,7 +15,9 @@
   "dependencies": {
     "leaflet": "^1.0.2",
     "react": "^15.4.1",
-    "react-dom": "^15.4.1"
+    "react-addons-css-transition-group": "^15.4.1",
+    "react-dom": "^15.4.1",
+    "react-google-charts": "^1.2.1"
   },
   "devDependencies": {
     "babel-core": "^6.20.0",

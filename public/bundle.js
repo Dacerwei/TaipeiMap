@@ -45,7 +45,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	__webpack_require__(1);
-	module.exports = __webpack_require__(197);
+	module.exports = __webpack_require__(224);
 
 
 /***/ },
@@ -70,7 +70,7 @@
 
 	var _Map2 = _interopRequireDefault(_Map);
 
-	__webpack_require__(195);
+	__webpack_require__(222);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -21825,9 +21825,21 @@
 
 	var _Filter2 = _interopRequireDefault(_Filter);
 
-	var _mrt = __webpack_require__(194);
+	var _GoogleChart = __webpack_require__(194);
+
+	var _GoogleChart2 = _interopRequireDefault(_GoogleChart);
+
+	var _mrt = __webpack_require__(206);
 
 	var _mrt2 = _interopRequireDefault(_mrt);
+
+	var _youbike = __webpack_require__(207);
+
+	var _youbike2 = _interopRequireDefault(_youbike);
+
+	var _reactAddonsCssTransitionGroup = __webpack_require__(208);
+
+	var _reactAddonsCssTransitionGroup2 = _interopRequireDefault(_reactAddonsCssTransitionGroup);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -21874,18 +21886,24 @@
 			_this.state = {
 				map: null,
 				tileLayer: null,
-				geojsonLayer: null,
-				geojson: null,
+				mrtGeojsonLayer: null,
+				mrtGeojson: null,
+				youbikeGeojsonLayer: null,
+				youbikeGeojson: null,
 				mrtLinesFilter: '*',
-				numStations: null
+				numStations: null,
+				displayChart: false
 			};
 
 			_this._mapNode = null;
 			_this.updateMap = _this.updateMap.bind(_this);
 			_this.onEachFeature = _this.onEachFeature.bind(_this);
-			_this.pointToLayer = _this.pointToLayer.bind(_this);
+			_this.mrtPointToLayer = _this.mrtPointToLayer.bind(_this);
 			_this.filterFeatures = _this.filterFeatures.bind(_this);
 			_this.filterGeoJSONLayer = _this.filterGeoJSONLayer.bind(_this);
+			_this.youbikePointToLayer = _this.youbikePointToLayer.bind(_this);
+			_this.onMarkClick = _this.onMarkClick.bind(_this);
+			_this.onMapClick = _this.onMapClick.bind(_this);
 			return _this;
 		}
 
@@ -21904,8 +21922,9 @@
 			value: function componentDidUpdate(prevProps, prevState) {
 				console.log('componoentDidUpdate');
 
-				if (this.state.geojson && this.state.map && !this.state.geojsonLayer) {
-					this.addGeoJSONLayer(this.state.geojson);
+				if (this.state.mrtGeojson && this.state.map && !this.state.mrtGeojsonLayer) {
+					this.addGeoJSONLayer(this.state.mrtGeojson);
+					this.addGeoJSONLayer(this.state.youbikeGeojson);
 				}
 
 				if (this.state.mrtLinesFilter !== prevState.mrtLinesFilter) {
@@ -21924,7 +21943,8 @@
 				console.log('getData');
 				this.setState({
 					numStations: _mrt2.default.features.length,
-					geojson: _mrt2.default
+					mrtGeojson: _mrt2.default,
+					youbikeGeojson: _youbike2.default
 				});
 			}
 		}, {
@@ -21945,23 +21965,32 @@
 			key: 'addGeoJSONLayer',
 			value: function addGeoJSONLayer(geojson) {
 				console.log('addGeoJSONLayer');
-				console.log(mrtLineNames);
-				var geojsonLayer = _leaflet2.default.geoJSON(geojson, {
-					onEachFeature: this.onEachFeature,
-					pointToLayer: this.pointToLayer,
-					filter: this.filterFeatures
-				});
+				if (geojson.type === 'mrtStations') {
+					var mrtGeojsonLayer = _leaflet2.default.geoJSON(geojson, {
+						onEachFeature: this.onEachFeature,
+						pointToLayer: this.mrtPointToLayer,
+						filter: this.filterFeatures
+					});
 
-				geojsonLayer.addTo(this.state.map);
+					mrtGeojsonLayer.addTo(this.state.map);
 
-				this.setState({ geojsonLayer: geojsonLayer });
+					this.setState({ mrtGeojsonLayer: mrtGeojsonLayer });
+				} else if (geojson.type === 'youbikeSites') {
+					var youbikeGeojsonLayer = _leaflet2.default.geoJSON(geojson, {
+						pointToLayer: this.youbikePointToLayer
+					});
+
+					youbikeGeojsonLayer.addTo(this.state.map);
+
+					this.setState({ youbikeGeojsonLayer: youbikeGeojsonLayer });
+				}
 			}
 		}, {
 			key: 'filterGeoJSONLayer',
 			value: function filterGeoJSONLayer() {
 				console.log("filterGeoJSONLayer");
-				this.state.geojsonLayer.clearLayers();
-				this.state.geojsonLayer.addData(_mrt2.default);
+				this.state.mrtGeojsonLayer.clearLayers();
+				this.state.mrtGeojsonLayer.addData(_mrt2.default);
 				// this.zoomToFeature(this.state.geojsonLayer);
 			}
 		}, {
@@ -21977,12 +22006,25 @@
 				}
 			}
 		}, {
-			key: 'pointToLayer',
-			value: function pointToLayer(feature, latlng) {
-				console.log("pointToLayer");
+			key: 'mrtPointToLayer',
+			value: function mrtPointToLayer(feature, latlng) {
 				var markerParams = {
-					radius: 4,
+					radius: 5,
 					fillColor: 'orange',
+					color: '#fff',
+					weight: 1,
+					opacity: 0.5,
+					fillOpacity: 0.8
+				};
+
+				return _leaflet2.default.circleMarker(latlng, markerParams);
+			}
+		}, {
+			key: 'youbikePointToLayer',
+			value: function youbikePointToLayer(feature, latlng) {
+				var markerParams = {
+					radius: 3,
+					fillColor: 'darkred',
 					color: '#fff',
 					weight: 1,
 					opacity: 0.5,
@@ -21994,7 +22036,6 @@
 		}, {
 			key: 'onEachFeature',
 			value: function onEachFeature(feature, layer) {
-				console.log("onEachFeature");
 				if (feature.properties && feature.properties.name && feature.properties.line) {
 					if (mrtLineNames.length < 7) {
 
@@ -22002,7 +22043,7 @@
 							if (mrtLineNames.indexOf(line) === -1) mrtLineNames.push(line);
 						});
 
-						if (this.state.geojson.features.indexOf(feature) === this.state.numStations - 1) {
+						if (this.state.mrtGeojson.features.indexOf(feature) === this.state.numStations - 1) {
 							mrtLineNames.sort();
 							mrtLineNames.unshift('All lines');
 						}
@@ -22010,7 +22051,20 @@
 
 					var popupContent = "<h3>${feature.properties.name}</h3><strong>MRT line:</strong>${feature.properties.line}";
 					layer.bindPopup(popupContent);
+					layer.on('click', this.onMarkClick);
 				}
+			}
+		}, {
+			key: 'onMarkClick',
+			value: function onMarkClick(e) {
+				console.log(e.target.feature.properties.name);
+				this.setState({ displayChart: true });
+			}
+		}, {
+			key: 'onMapClick',
+			value: function onMapClick(e) {
+				console.log("chart close");
+				this.setState({ displayChart: false });
 			}
 		}, {
 			key: 'init',
@@ -22024,6 +22078,7 @@
 
 				var tileLayer = _leaflet2.default.tileLayer(config.tileLayer.uri, config.tileLayer.params).addTo(map);
 				this.setState({ map: map, tileLayer: tileLayer });
+				map.on('click', this.onMapClick);
 			}
 		}, {
 			key: 'render',
@@ -22041,6 +22096,18 @@
 					mrtLineNames.length && _react2.default.createElement(_Filter2.default, { lines: mrtLineNames,
 						curFilter: mrtLinesFilter,
 						filterLines: this.updateMap }),
+					this.state.displayChart && _react2.default.createElement(
+						_reactAddonsCssTransitionGroup2.default,
+						{
+							transitionName: 'slideInFromRightSide',
+							transitionEnterTimeout: 2000,
+							transitionLeaveTimeout: 300 },
+						_react2.default.createElement(
+							'div',
+							{ id: 'chartArea' },
+							_react2.default.createElement(_GoogleChart2.default, null)
+						)
+					),
 					_react2.default.createElement('div', { ref: function ref(node) {
 							return _this2._mapNode = node;
 						}, id: 'map' })
@@ -35649,6 +35716,7084 @@
 
 /***/ },
 /* 194 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _reactGoogleCharts = __webpack_require__(195);
+
+	var _react = __webpack_require__(2);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var ExampleChart = function (_React$Component) {
+		_inherits(ExampleChart, _React$Component);
+
+		function ExampleChart(props) {
+			_classCallCheck(this, ExampleChart);
+
+			var _this = _possibleConstructorReturn(this, (ExampleChart.__proto__ || Object.getPrototypeOf(ExampleChart)).call(this, props));
+
+			_this.state = {
+				options: {
+					title: 'Age vs. Weight comparison',
+					hAxis: { title: 'Age', minValue: 0, maxValue: 15 },
+					vAxis: { title: 'Weight', minValue: 0, maxValue: 15 },
+					legend: 'none'
+				},
+				data: [['Age', 'Weight'], [8, 12], [4, 5.5], [11, 14], [4, 5], [3, 3.5], [6.5, 7]]
+			};
+			return _this;
+		}
+
+		_createClass(ExampleChart, [{
+			key: 'render',
+			value: function render() {
+				return _react2.default.createElement(
+					'div',
+					{ id: 'charts' },
+					_react2.default.createElement(_reactGoogleCharts.Chart, {
+						chartType: 'ScatterChart',
+						data: this.state.data,
+						options: this.state.options,
+						graph_id: '1',
+						width: '100%',
+						height: '50%',
+						legend_toggle: true
+					}),
+					_react2.default.createElement(_reactGoogleCharts.Chart, {
+						chartType: 'ScatterChart',
+						data: this.state.data,
+						options: this.state.options,
+						graph_id: '2',
+						width: '100%',
+						height: '50%',
+						legend_toggle: true
+					})
+				);
+			}
+		}]);
+
+		return ExampleChart;
+	}(_react2.default.Component);
+
+	exports.default = ExampleChart;
+
+/***/ },
+/* 195 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _react = __webpack_require__(2);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _Chart = __webpack_require__(196);
+
+	var _Chart2 = _interopRequireDefault(_Chart);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	//import SAMPLE_DATA from './constants/SAMPLE_DATA';
+
+	exports.default = { Chart: _Chart2.default };
+
+	//import googleChartLoader from './components/GoogleChartLoader';
+
+	module.exports = exports['default'];
+
+/***/ },
+/* 196 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+	exports.default = undefined;
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	var _react = __webpack_require__(2);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _bluebird = __webpack_require__(197);
+
+	var _bluebird2 = _interopRequireDefault(_bluebird);
+
+	var _DEFAULT_CHART_COLORS = __webpack_require__(200);
+
+	var _DEFAULT_CHART_COLORS2 = _interopRequireDefault(_DEFAULT_CHART_COLORS);
+
+	var _GoogleChartLoader = __webpack_require__(201);
+
+	var _GoogleChartLoader2 = _interopRequireDefault(_GoogleChartLoader);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var debug = __webpack_require__(202)('react-google-charts:Chart');
+
+
+	var uniqueID = 0;
+
+	var generateUniqueID = function generateUniqueID() {
+	  uniqueID++;
+	  return "reactgooglegraph-" + uniqueID;
+	};
+
+	var googleErrorHandler = function googleErrorHandler(id, message) {
+	  console.error("Google Charts encountered an error : ");
+	  console.error('Error ID : ' + id);
+	  console.error('Error MESSAGE : ' + message);
+	};
+
+	var Chart = function (_React$Component) {
+	  _inherits(Chart, _React$Component);
+
+	  function Chart(props) {
+	    _classCallCheck(this, Chart);
+
+	    debug('constructor', props);
+
+	    var _this = _possibleConstructorReturn(this, _React$Component.call(this, props));
+
+	    _this.state = { graphID: props.graph_id || generateUniqueID() };
+	    _this.chart = null;
+	    _this.wrapper = null;
+	    _this.hidden_columns = {};
+	    _this.dataTable = [];
+	    return _this;
+	  }
+
+	  Chart.prototype.componentDidMount = function componentDidMount() {
+	    var _this2 = this;
+
+	    debug('componentDidMount');
+	    if (this.props.loadCharts) {
+	      _GoogleChartLoader2.default.init(this.props.chartPackages, this.props.chartVersion).then(function (asd) {
+	        _this2.drawChart();
+	      });
+	    } else {
+	      this.drawChart();
+	    }
+	  };
+
+	  Chart.prototype.componentWillUnmount = function componentWillUnmount() {
+	    try {
+	      google.visualization.events.removeAllListeners(this.wrapper);
+	    } catch (err) {
+	      console.error("Error removing events, error : ", err);
+	    }
+	  };
+
+	  Chart.prototype.componentDidUpdate = function componentDidUpdate() {
+	    var _this3 = this;
+
+	    debug('componentDidUpdate');
+	    if (!this.props.loadCharts) {
+	      this.drawChart();
+	    } else if (_GoogleChartLoader2.default.isLoading) {
+	      _GoogleChartLoader2.default.initPromise.then(function () {
+	        _this3.drawChart.bind(_this3)();
+	      });
+	    } else if (_GoogleChartLoader2.default.isLoaded) {
+	      this.drawChart.bind(this)();
+	    }
+	  };
+
+	  Chart.prototype.buildDataTableFromProps = function buildDataTableFromProps() {
+	    debug('buildDataTableFromProps', this.props);
+	    if (this.props.data === null && this.props.rows.length === 0) {
+	      throw new Error("Can't build DataTable from rows and columns: rows array in props is empty");
+	    } else if (this.props.data === null && this.props.columns.length === 0) {
+	      throw new Error("Can't build DataTable from rows and columns: columns array in props is empty");
+	    }
+	    if (this.props.data !== null) {
+	      try {
+	        this.wrapper.setDataTable(this.props.data);
+	        var _dataTable = this.wrapper.getDataTable();
+	        return _dataTable;
+	      } catch (err) {
+	        console.log('Failed to set DataTable from data props ! ', err);
+	        throw new Error('Failed to set DataTable from data props ! ', err);
+	      }
+	    }
+
+	    var dataTable = new google.visualization.DataTable();
+	    this.props.columns.forEach(function (column) {
+	      dataTable.addColumn(column);
+	    });
+	    dataTable.addRows(this.props.rows);
+	    return dataTable;
+	  };
+
+	  Chart.prototype.updateDataTable = function updateDataTable() {
+	    debug("updateDataTable");
+	    google.visualization.errors.removeAll(document.getElementById(this.wrapper.getContainerId()));
+	    this.dataTable.removeRows(0, this.dataTable.getNumberOfRows());
+	    this.dataTable.removeColumns(0, this.dataTable.getNumberOfColumns());
+	    this.dataTable = this.buildDataTableFromProps.bind(this)();
+	    return this.dataTable;
+	  };
+	  //DEPRECATED AND NOT USED
+
+
+	  Chart.prototype.getDataTableFromProps = function getDataTableFromProps() {
+	    debug("getDataTableFromProps");
+	    return this.props.data !== null ? this.props.data : this.buildDataTableFromProps.bind(this)();
+	  };
+
+	  Chart.prototype.drawChart = function drawChart() {
+	    var _this4 = this;
+
+	    debug("drawChart", this);
+	    if (!this.wrapper) {
+	      var chartConfig = {
+	        chartType: this.props.chartType,
+	        options: this.props.options,
+	        containerId: this.state.graphID
+	      };
+	      this.wrapper = new google.visualization.ChartWrapper(chartConfig);
+	      this.dataTable = this.buildDataTableFromProps.bind(this)();
+	      this.wrapper.setDataTable(this.dataTable);
+
+	      google.visualization.events.addOneTimeListener(this.wrapper, 'ready', function () {
+	        _this4.chart = _this4.wrapper.getChart();
+	        _this4.listenToChartEvents.bind(_this4)();
+	        _this4.addChartActions.bind(_this4)();
+	      });
+	    } else {
+	      this.updateDataTable.bind(this)();
+	      this.wrapper.setDataTable(this.dataTable);
+	      this.wrapper.setChartType(this.props.chartType);
+	      this.wrapper.setOptions(this.props.options);
+	    }
+	    this.wrapper.draw();
+	  };
+
+	  Chart.prototype.addChartActions = function addChartActions() {
+	    debug('addChartActions', this.props.chartActions);
+	    if (this.props.chartActions === null) {
+	      return;
+	    }
+	    this.chart.setAction({
+	      id: this.props.chartActions.id,
+	      text: this.props.chartActions.text,
+	      action: this.props.chartActions.action.bind(this, this.chart)
+	    });
+	  };
+
+	  Chart.prototype.listenToChartEvents = function listenToChartEvents() {
+	    var _this5 = this;
+
+	    debug('listenToChartEvents', this.props.legend_toggle, this.props.chartEvents);
+	    if (this.props.legend_toggle) {
+	      google.visualization.events.addListener(this.wrapper, 'select', this.onSelectToggle.bind(this));
+	    }
+	    this.props.chartEvents.forEach(function (chartEvent) {
+	      if (chartEvent.eventName === 'ready') {
+	        chartEvent.callback(_this5);
+	      } else {
+	        (function (chartEvent) {
+	          google.visualization.events.addListener(_this5.chart, chartEvent.eventName, function (e) {
+	            chartEvent.callback(_this5, e);
+	          });
+	        })(chartEvent);
+	      }
+	    });
+	  };
+
+	  Chart.prototype.onSelectToggle = function onSelectToggle() {
+	    debug('onSelectToggle');
+	    var selection = this.chart.getSelection();
+	    if (selection.length > 0) {
+	      if (selection[0].row == null) {
+	        var column = selection[0].column;
+	        this.togglePoints.bind(this)(column);
+	      }
+	    }
+	  };
+
+	  Chart.prototype.getColumnColor = function getColumnColor(columnIndex) {
+	    if (this.props.options.colors) {
+	      if (this.props.options.colors[columnIndex]) {
+	        return this.props.options.colors[columnIndex];
+	      }
+	    } else {
+	      if (_typeof(_DEFAULT_CHART_COLORS2.default[columnIndex]) !== undefined) {
+	        return _DEFAULT_CHART_COLORS2.default[columnIndex];
+	      } else {
+	        return _DEFAULT_CHART_COLORS2.default[0];
+	      }
+	    }
+	  };
+
+	  Chart.prototype.buildColumnFromSourceData = function buildColumnFromSourceData(columnIndex) {
+	    debug('buildColumnFromSourceData', columnIndex);
+	    return {
+	      label: this.dataTable.getColumnLabel(columnIndex),
+	      type: this.dataTable.getColumnType(columnIndex),
+	      sourceColumn: columnIndex
+	    };
+	  };
+
+	  Chart.prototype.buildEmptyColumnFromSourceData = function buildEmptyColumnFromSourceData(columnIndex) {
+	    debug('buildEmptyColumnFromSourceData', columnIndex);
+	    return {
+	      label: this.dataTable.getColumnLabel(columnIndex),
+	      type: this.dataTable.getColumnType(columnIndex),
+	      calc: function calc() {
+	        return null;
+	      }
+	    };
+	  };
+
+	  Chart.prototype.addEmptyColumnTo = function addEmptyColumnTo(columns, columnIndex) {
+	    debug('addEmptyColumnTo', columns, columnIndex);
+	    var emptyColumn = this.buildEmptyColumnFromSourceData(columnIndex);
+	    columns.push(emptyColumn);
+	  };
+
+	  Chart.prototype.hideColumn = function hideColumn(colors, columnIndex) {
+	    debug('hideColumn', colors, columnIndex);
+	    if (!this.isHidden(columnIndex)) {
+	      this.hidden_columns[columnIndex] = { color: this.getColumnColor(columnIndex - 1) };
+	    }
+	    colors.push('#CCCCCC');
+	  };
+
+	  Chart.prototype.addSourceColumnTo = function addSourceColumnTo(columns, columnIndex) {
+	    debug('addSourceColumnTo', columns, columnIndex);
+	    var sourceColumn = this.buildColumnFromSourceData(columnIndex);
+	    columns.push(sourceColumn);
+	  };
+
+	  Chart.prototype.isHidden = function isHidden(columnIndex) {
+	    return this.hidden_columns[columnIndex] !== undefined;
+	  };
+
+	  Chart.prototype.restoreColorTo = function restoreColorTo(colors, columnIndex) {
+	    debug('restoreColorTo', colors, columnIndex);
+	    debug('hidden_columns', this.hidden_columns);
+	    var previousColor = void 0;
+	    if (this.isHidden(columnIndex)) {
+	      previousColor = this.hidden_columns[columnIndex].color;
+	      delete this.hidden_columns[columnIndex];
+	    } else {
+	      previousColor = this.getColumnColor(columnIndex - 1);
+	    }
+	    if (columnIndex !== 0) {
+	      colors.push(previousColor);
+	    }
+	  };
+
+	  Chart.prototype.togglePoints = function togglePoints(column) {
+	    debug('togglePoints', column);
+	    var view = new google.visualization.DataView(this.wrapper.getDataTable());
+	    var columnCount = view.getNumberOfColumns();
+	    var colors = [];
+	    var columns = [];
+	    for (var i = 0; i < columnCount; i++) {
+	      // If user clicked on legend
+	      if (i === 0) {
+	        this.addSourceColumnTo.bind(this)(columns, i);
+	      } else if (i === column) {
+	        if (this.isHidden(i)) {
+	          this.addSourceColumnTo.bind(this)(columns, i);
+	          this.restoreColorTo.bind(this)(colors, i);
+	        } else {
+	          this.addEmptyColumnTo.bind(this)(columns, i);
+	          this.hideColumn.bind(this)(colors, i);
+	        }
+	      } else {
+	        if (this.isHidden(i)) {
+	          this.addEmptyColumnTo.bind(this)(columns, i);
+	          this.hideColumn.bind(this)(colors, i);
+	        } else {
+	          this.addSourceColumnTo.bind(this)(columns, i);
+	          this.restoreColorTo.bind(this)(colors, i);
+	        }
+	      }
+	    }
+	    view.setColumns(columns);
+	    this.props.options.colors = colors;
+	    this.chart.draw(view, this.props.options);
+	  };
+
+	  Chart.prototype.render = function render() {
+	    debug('render', this.props, this.state);
+	    var divStyle = { height: this.props.height || this.props.options.height, width: this.props.width || this.props.options.width };
+	    return _react2.default.createElement(
+	      'div',
+	      { id: this.state.graphID, style: divStyle },
+	      ' ',
+	      this.props.loader ? this.props.loader : 'Rendering Chart...',
+	      ' '
+	    );
+	  };
+
+	  return Chart;
+	}(_react2.default.Component);
+
+	exports.default = Chart;
+	;
+
+	Chart.defaultProps = {
+	  chartType: 'LineChart',
+	  rows: [],
+	  columns: [],
+	  options: {
+	    chart: {
+	      title: 'Chart Title',
+	      subtitle: 'Subtitle'
+	    },
+	    hAxis: { title: 'X Label' },
+	    vAxis: { title: 'Y Label' },
+	    width: '400px',
+	    height: '300px'
+	  },
+	  width: '400px',
+	  height: '300px',
+	  chartEvents: [],
+	  chartActions: null,
+	  data: null,
+	  onSelect: null,
+	  legend_toggle: false,
+	  loadCharts: true,
+	  loader: _react2.default.createElement(
+	    'div',
+	    null,
+	    'Rendering Chart'
+	  )
+	};
+	module.exports = exports['default'];
+
+/***/ },
+/* 197 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process, global, setImmediate) {/* @preserve
+	 * The MIT License (MIT)
+	 * 
+	 * Copyright (c) 2013-2015 Petka Antonov
+	 * 
+	 * Permission is hereby granted, free of charge, to any person obtaining a copy
+	 * of this software and associated documentation files (the "Software"), to deal
+	 * in the Software without restriction, including without limitation the rights
+	 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	 * copies of the Software, and to permit persons to whom the Software is
+	 * furnished to do so, subject to the following conditions:
+	 * 
+	 * The above copyright notice and this permission notice shall be included in
+	 * all copies or substantial portions of the Software.
+	 * 
+	 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+	 * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+	 * THE SOFTWARE.
+	 * 
+	 */
+	/**
+	 * bluebird build version 3.4.6
+	 * Features enabled: core, race, call_get, generators, map, nodeify, promisify, props, reduce, settle, some, using, timers, filter, any, each
+	*/
+	!function(e){if(true)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.Promise=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof _dereq_=="function"&&_dereq_;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof _dereq_=="function"&&_dereq_;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise) {
+	var SomePromiseArray = Promise._SomePromiseArray;
+	function any(promises) {
+	    var ret = new SomePromiseArray(promises);
+	    var promise = ret.promise();
+	    ret.setHowMany(1);
+	    ret.setUnwrap();
+	    ret.init();
+	    return promise;
+	}
+
+	Promise.any = function (promises) {
+	    return any(promises);
+	};
+
+	Promise.prototype.any = function () {
+	    return any(this);
+	};
+
+	};
+
+	},{}],2:[function(_dereq_,module,exports){
+	"use strict";
+	var firstLineError;
+	try {throw new Error(); } catch (e) {firstLineError = e;}
+	var schedule = _dereq_("./schedule");
+	var Queue = _dereq_("./queue");
+	var util = _dereq_("./util");
+
+	function Async() {
+	    this._customScheduler = false;
+	    this._isTickUsed = false;
+	    this._lateQueue = new Queue(16);
+	    this._normalQueue = new Queue(16);
+	    this._haveDrainedQueues = false;
+	    this._trampolineEnabled = true;
+	    var self = this;
+	    this.drainQueues = function () {
+	        self._drainQueues();
+	    };
+	    this._schedule = schedule;
+	}
+
+	Async.prototype.setScheduler = function(fn) {
+	    var prev = this._schedule;
+	    this._schedule = fn;
+	    this._customScheduler = true;
+	    return prev;
+	};
+
+	Async.prototype.hasCustomScheduler = function() {
+	    return this._customScheduler;
+	};
+
+	Async.prototype.enableTrampoline = function() {
+	    this._trampolineEnabled = true;
+	};
+
+	Async.prototype.disableTrampolineIfNecessary = function() {
+	    if (util.hasDevTools) {
+	        this._trampolineEnabled = false;
+	    }
+	};
+
+	Async.prototype.haveItemsQueued = function () {
+	    return this._isTickUsed || this._haveDrainedQueues;
+	};
+
+
+	Async.prototype.fatalError = function(e, isNode) {
+	    if (isNode) {
+	        process.stderr.write("Fatal " + (e instanceof Error ? e.stack : e) +
+	            "\n");
+	        process.exit(2);
+	    } else {
+	        this.throwLater(e);
+	    }
+	};
+
+	Async.prototype.throwLater = function(fn, arg) {
+	    if (arguments.length === 1) {
+	        arg = fn;
+	        fn = function () { throw arg; };
+	    }
+	    if (typeof setTimeout !== "undefined") {
+	        setTimeout(function() {
+	            fn(arg);
+	        }, 0);
+	    } else try {
+	        this._schedule(function() {
+	            fn(arg);
+	        });
+	    } catch (e) {
+	        throw new Error("No async scheduler available\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	};
+
+	function AsyncInvokeLater(fn, receiver, arg) {
+	    this._lateQueue.push(fn, receiver, arg);
+	    this._queueTick();
+	}
+
+	function AsyncInvoke(fn, receiver, arg) {
+	    this._normalQueue.push(fn, receiver, arg);
+	    this._queueTick();
+	}
+
+	function AsyncSettlePromises(promise) {
+	    this._normalQueue._pushOne(promise);
+	    this._queueTick();
+	}
+
+	if (!util.hasDevTools) {
+	    Async.prototype.invokeLater = AsyncInvokeLater;
+	    Async.prototype.invoke = AsyncInvoke;
+	    Async.prototype.settlePromises = AsyncSettlePromises;
+	} else {
+	    Async.prototype.invokeLater = function (fn, receiver, arg) {
+	        if (this._trampolineEnabled) {
+	            AsyncInvokeLater.call(this, fn, receiver, arg);
+	        } else {
+	            this._schedule(function() {
+	                setTimeout(function() {
+	                    fn.call(receiver, arg);
+	                }, 100);
+	            });
+	        }
+	    };
+
+	    Async.prototype.invoke = function (fn, receiver, arg) {
+	        if (this._trampolineEnabled) {
+	            AsyncInvoke.call(this, fn, receiver, arg);
+	        } else {
+	            this._schedule(function() {
+	                fn.call(receiver, arg);
+	            });
+	        }
+	    };
+
+	    Async.prototype.settlePromises = function(promise) {
+	        if (this._trampolineEnabled) {
+	            AsyncSettlePromises.call(this, promise);
+	        } else {
+	            this._schedule(function() {
+	                promise._settlePromises();
+	            });
+	        }
+	    };
+	}
+
+	Async.prototype.invokeFirst = function (fn, receiver, arg) {
+	    this._normalQueue.unshift(fn, receiver, arg);
+	    this._queueTick();
+	};
+
+	Async.prototype._drainQueue = function(queue) {
+	    while (queue.length() > 0) {
+	        var fn = queue.shift();
+	        if (typeof fn !== "function") {
+	            fn._settlePromises();
+	            continue;
+	        }
+	        var receiver = queue.shift();
+	        var arg = queue.shift();
+	        fn.call(receiver, arg);
+	    }
+	};
+
+	Async.prototype._drainQueues = function () {
+	    this._drainQueue(this._normalQueue);
+	    this._reset();
+	    this._haveDrainedQueues = true;
+	    this._drainQueue(this._lateQueue);
+	};
+
+	Async.prototype._queueTick = function () {
+	    if (!this._isTickUsed) {
+	        this._isTickUsed = true;
+	        this._schedule(this.drainQueues);
+	    }
+	};
+
+	Async.prototype._reset = function () {
+	    this._isTickUsed = false;
+	};
+
+	module.exports = Async;
+	module.exports.firstLineError = firstLineError;
+
+	},{"./queue":26,"./schedule":29,"./util":36}],3:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, INTERNAL, tryConvertToPromise, debug) {
+	var calledBind = false;
+	var rejectThis = function(_, e) {
+	    this._reject(e);
+	};
+
+	var targetRejected = function(e, context) {
+	    context.promiseRejectionQueued = true;
+	    context.bindingPromise._then(rejectThis, rejectThis, null, this, e);
+	};
+
+	var bindingResolved = function(thisArg, context) {
+	    if (((this._bitField & 50397184) === 0)) {
+	        this._resolveCallback(context.target);
+	    }
+	};
+
+	var bindingRejected = function(e, context) {
+	    if (!context.promiseRejectionQueued) this._reject(e);
+	};
+
+	Promise.prototype.bind = function (thisArg) {
+	    if (!calledBind) {
+	        calledBind = true;
+	        Promise.prototype._propagateFrom = debug.propagateFromFunction();
+	        Promise.prototype._boundValue = debug.boundValueFunction();
+	    }
+	    var maybePromise = tryConvertToPromise(thisArg);
+	    var ret = new Promise(INTERNAL);
+	    ret._propagateFrom(this, 1);
+	    var target = this._target();
+	    ret._setBoundTo(maybePromise);
+	    if (maybePromise instanceof Promise) {
+	        var context = {
+	            promiseRejectionQueued: false,
+	            promise: ret,
+	            target: target,
+	            bindingPromise: maybePromise
+	        };
+	        target._then(INTERNAL, targetRejected, undefined, ret, context);
+	        maybePromise._then(
+	            bindingResolved, bindingRejected, undefined, ret, context);
+	        ret._setOnCancel(maybePromise);
+	    } else {
+	        ret._resolveCallback(target);
+	    }
+	    return ret;
+	};
+
+	Promise.prototype._setBoundTo = function (obj) {
+	    if (obj !== undefined) {
+	        this._bitField = this._bitField | 2097152;
+	        this._boundTo = obj;
+	    } else {
+	        this._bitField = this._bitField & (~2097152);
+	    }
+	};
+
+	Promise.prototype._isBound = function () {
+	    return (this._bitField & 2097152) === 2097152;
+	};
+
+	Promise.bind = function (thisArg, value) {
+	    return Promise.resolve(value).bind(thisArg);
+	};
+	};
+
+	},{}],4:[function(_dereq_,module,exports){
+	"use strict";
+	var old;
+	if (typeof Promise !== "undefined") old = Promise;
+	function noConflict() {
+	    try { if (Promise === bluebird) Promise = old; }
+	    catch (e) {}
+	    return bluebird;
+	}
+	var bluebird = _dereq_("./promise")();
+	bluebird.noConflict = noConflict;
+	module.exports = bluebird;
+
+	},{"./promise":22}],5:[function(_dereq_,module,exports){
+	"use strict";
+	var cr = Object.create;
+	if (cr) {
+	    var callerCache = cr(null);
+	    var getterCache = cr(null);
+	    callerCache[" size"] = getterCache[" size"] = 0;
+	}
+
+	module.exports = function(Promise) {
+	var util = _dereq_("./util");
+	var canEvaluate = util.canEvaluate;
+	var isIdentifier = util.isIdentifier;
+
+	var getMethodCaller;
+	var getGetter;
+	if (false) {
+	var makeMethodCaller = function (methodName) {
+	    return new Function("ensureMethod", "                                    \n\
+	        return function(obj) {                                               \n\
+	            'use strict'                                                     \n\
+	            var len = this.length;                                           \n\
+	            ensureMethod(obj, 'methodName');                                 \n\
+	            switch(len) {                                                    \n\
+	                case 1: return obj.methodName(this[0]);                      \n\
+	                case 2: return obj.methodName(this[0], this[1]);             \n\
+	                case 3: return obj.methodName(this[0], this[1], this[2]);    \n\
+	                case 0: return obj.methodName();                             \n\
+	                default:                                                     \n\
+	                    return obj.methodName.apply(obj, this);                  \n\
+	            }                                                                \n\
+	        };                                                                   \n\
+	        ".replace(/methodName/g, methodName))(ensureMethod);
+	};
+
+	var makeGetter = function (propertyName) {
+	    return new Function("obj", "                                             \n\
+	        'use strict';                                                        \n\
+	        return obj.propertyName;                                             \n\
+	        ".replace("propertyName", propertyName));
+	};
+
+	var getCompiled = function(name, compiler, cache) {
+	    var ret = cache[name];
+	    if (typeof ret !== "function") {
+	        if (!isIdentifier(name)) {
+	            return null;
+	        }
+	        ret = compiler(name);
+	        cache[name] = ret;
+	        cache[" size"]++;
+	        if (cache[" size"] > 512) {
+	            var keys = Object.keys(cache);
+	            for (var i = 0; i < 256; ++i) delete cache[keys[i]];
+	            cache[" size"] = keys.length - 256;
+	        }
+	    }
+	    return ret;
+	};
+
+	getMethodCaller = function(name) {
+	    return getCompiled(name, makeMethodCaller, callerCache);
+	};
+
+	getGetter = function(name) {
+	    return getCompiled(name, makeGetter, getterCache);
+	};
+	}
+
+	function ensureMethod(obj, methodName) {
+	    var fn;
+	    if (obj != null) fn = obj[methodName];
+	    if (typeof fn !== "function") {
+	        var message = "Object " + util.classString(obj) + " has no method '" +
+	            util.toString(methodName) + "'";
+	        throw new Promise.TypeError(message);
+	    }
+	    return fn;
+	}
+
+	function caller(obj) {
+	    var methodName = this.pop();
+	    var fn = ensureMethod(obj, methodName);
+	    return fn.apply(obj, this);
+	}
+	Promise.prototype.call = function (methodName) {
+	    var args = [].slice.call(arguments, 1);;
+	    if (false) {
+	        if (canEvaluate) {
+	            var maybeCaller = getMethodCaller(methodName);
+	            if (maybeCaller !== null) {
+	                return this._then(
+	                    maybeCaller, undefined, undefined, args, undefined);
+	            }
+	        }
+	    }
+	    args.push(methodName);
+	    return this._then(caller, undefined, undefined, args, undefined);
+	};
+
+	function namedGetter(obj) {
+	    return obj[this];
+	}
+	function indexedGetter(obj) {
+	    var index = +this;
+	    if (index < 0) index = Math.max(0, index + obj.length);
+	    return obj[index];
+	}
+	Promise.prototype.get = function (propertyName) {
+	    var isIndex = (typeof propertyName === "number");
+	    var getter;
+	    if (!isIndex) {
+	        if (canEvaluate) {
+	            var maybeGetter = getGetter(propertyName);
+	            getter = maybeGetter !== null ? maybeGetter : namedGetter;
+	        } else {
+	            getter = namedGetter;
+	        }
+	    } else {
+	        getter = indexedGetter;
+	    }
+	    return this._then(getter, undefined, undefined, propertyName, undefined);
+	};
+	};
+
+	},{"./util":36}],6:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, PromiseArray, apiRejection, debug) {
+	var util = _dereq_("./util");
+	var tryCatch = util.tryCatch;
+	var errorObj = util.errorObj;
+	var async = Promise._async;
+
+	Promise.prototype["break"] = Promise.prototype.cancel = function() {
+	    if (!debug.cancellation()) return this._warn("cancellation is disabled");
+
+	    var promise = this;
+	    var child = promise;
+	    while (promise._isCancellable()) {
+	        if (!promise._cancelBy(child)) {
+	            if (child._isFollowing()) {
+	                child._followee().cancel();
+	            } else {
+	                child._cancelBranched();
+	            }
+	            break;
+	        }
+
+	        var parent = promise._cancellationParent;
+	        if (parent == null || !parent._isCancellable()) {
+	            if (promise._isFollowing()) {
+	                promise._followee().cancel();
+	            } else {
+	                promise._cancelBranched();
+	            }
+	            break;
+	        } else {
+	            if (promise._isFollowing()) promise._followee().cancel();
+	            promise._setWillBeCancelled();
+	            child = promise;
+	            promise = parent;
+	        }
+	    }
+	};
+
+	Promise.prototype._branchHasCancelled = function() {
+	    this._branchesRemainingToCancel--;
+	};
+
+	Promise.prototype._enoughBranchesHaveCancelled = function() {
+	    return this._branchesRemainingToCancel === undefined ||
+	           this._branchesRemainingToCancel <= 0;
+	};
+
+	Promise.prototype._cancelBy = function(canceller) {
+	    if (canceller === this) {
+	        this._branchesRemainingToCancel = 0;
+	        this._invokeOnCancel();
+	        return true;
+	    } else {
+	        this._branchHasCancelled();
+	        if (this._enoughBranchesHaveCancelled()) {
+	            this._invokeOnCancel();
+	            return true;
+	        }
+	    }
+	    return false;
+	};
+
+	Promise.prototype._cancelBranched = function() {
+	    if (this._enoughBranchesHaveCancelled()) {
+	        this._cancel();
+	    }
+	};
+
+	Promise.prototype._cancel = function() {
+	    if (!this._isCancellable()) return;
+	    this._setCancelled();
+	    async.invoke(this._cancelPromises, this, undefined);
+	};
+
+	Promise.prototype._cancelPromises = function() {
+	    if (this._length() > 0) this._settlePromises();
+	};
+
+	Promise.prototype._unsetOnCancel = function() {
+	    this._onCancelField = undefined;
+	};
+
+	Promise.prototype._isCancellable = function() {
+	    return this.isPending() && !this._isCancelled();
+	};
+
+	Promise.prototype.isCancellable = function() {
+	    return this.isPending() && !this.isCancelled();
+	};
+
+	Promise.prototype._doInvokeOnCancel = function(onCancelCallback, internalOnly) {
+	    if (util.isArray(onCancelCallback)) {
+	        for (var i = 0; i < onCancelCallback.length; ++i) {
+	            this._doInvokeOnCancel(onCancelCallback[i], internalOnly);
+	        }
+	    } else if (onCancelCallback !== undefined) {
+	        if (typeof onCancelCallback === "function") {
+	            if (!internalOnly) {
+	                var e = tryCatch(onCancelCallback).call(this._boundValue());
+	                if (e === errorObj) {
+	                    this._attachExtraTrace(e.e);
+	                    async.throwLater(e.e);
+	                }
+	            }
+	        } else {
+	            onCancelCallback._resultCancelled(this);
+	        }
+	    }
+	};
+
+	Promise.prototype._invokeOnCancel = function() {
+	    var onCancelCallback = this._onCancel();
+	    this._unsetOnCancel();
+	    async.invoke(this._doInvokeOnCancel, this, onCancelCallback);
+	};
+
+	Promise.prototype._invokeInternalOnCancel = function() {
+	    if (this._isCancellable()) {
+	        this._doInvokeOnCancel(this._onCancel(), true);
+	        this._unsetOnCancel();
+	    }
+	};
+
+	Promise.prototype._resultCancelled = function() {
+	    this.cancel();
+	};
+
+	};
+
+	},{"./util":36}],7:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(NEXT_FILTER) {
+	var util = _dereq_("./util");
+	var getKeys = _dereq_("./es5").keys;
+	var tryCatch = util.tryCatch;
+	var errorObj = util.errorObj;
+
+	function catchFilter(instances, cb, promise) {
+	    return function(e) {
+	        var boundTo = promise._boundValue();
+	        predicateLoop: for (var i = 0; i < instances.length; ++i) {
+	            var item = instances[i];
+
+	            if (item === Error ||
+	                (item != null && item.prototype instanceof Error)) {
+	                if (e instanceof item) {
+	                    return tryCatch(cb).call(boundTo, e);
+	                }
+	            } else if (typeof item === "function") {
+	                var matchesPredicate = tryCatch(item).call(boundTo, e);
+	                if (matchesPredicate === errorObj) {
+	                    return matchesPredicate;
+	                } else if (matchesPredicate) {
+	                    return tryCatch(cb).call(boundTo, e);
+	                }
+	            } else if (util.isObject(e)) {
+	                var keys = getKeys(item);
+	                for (var j = 0; j < keys.length; ++j) {
+	                    var key = keys[j];
+	                    if (item[key] != e[key]) {
+	                        continue predicateLoop;
+	                    }
+	                }
+	                return tryCatch(cb).call(boundTo, e);
+	            }
+	        }
+	        return NEXT_FILTER;
+	    };
+	}
+
+	return catchFilter;
+	};
+
+	},{"./es5":13,"./util":36}],8:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise) {
+	var longStackTraces = false;
+	var contextStack = [];
+
+	Promise.prototype._promiseCreated = function() {};
+	Promise.prototype._pushContext = function() {};
+	Promise.prototype._popContext = function() {return null;};
+	Promise._peekContext = Promise.prototype._peekContext = function() {};
+
+	function Context() {
+	    this._trace = new Context.CapturedTrace(peekContext());
+	}
+	Context.prototype._pushContext = function () {
+	    if (this._trace !== undefined) {
+	        this._trace._promiseCreated = null;
+	        contextStack.push(this._trace);
+	    }
+	};
+
+	Context.prototype._popContext = function () {
+	    if (this._trace !== undefined) {
+	        var trace = contextStack.pop();
+	        var ret = trace._promiseCreated;
+	        trace._promiseCreated = null;
+	        return ret;
+	    }
+	    return null;
+	};
+
+	function createContext() {
+	    if (longStackTraces) return new Context();
+	}
+
+	function peekContext() {
+	    var lastIndex = contextStack.length - 1;
+	    if (lastIndex >= 0) {
+	        return contextStack[lastIndex];
+	    }
+	    return undefined;
+	}
+	Context.CapturedTrace = null;
+	Context.create = createContext;
+	Context.deactivateLongStackTraces = function() {};
+	Context.activateLongStackTraces = function() {
+	    var Promise_pushContext = Promise.prototype._pushContext;
+	    var Promise_popContext = Promise.prototype._popContext;
+	    var Promise_PeekContext = Promise._peekContext;
+	    var Promise_peekContext = Promise.prototype._peekContext;
+	    var Promise_promiseCreated = Promise.prototype._promiseCreated;
+	    Context.deactivateLongStackTraces = function() {
+	        Promise.prototype._pushContext = Promise_pushContext;
+	        Promise.prototype._popContext = Promise_popContext;
+	        Promise._peekContext = Promise_PeekContext;
+	        Promise.prototype._peekContext = Promise_peekContext;
+	        Promise.prototype._promiseCreated = Promise_promiseCreated;
+	        longStackTraces = false;
+	    };
+	    longStackTraces = true;
+	    Promise.prototype._pushContext = Context.prototype._pushContext;
+	    Promise.prototype._popContext = Context.prototype._popContext;
+	    Promise._peekContext = Promise.prototype._peekContext = peekContext;
+	    Promise.prototype._promiseCreated = function() {
+	        var ctx = this._peekContext();
+	        if (ctx && ctx._promiseCreated == null) ctx._promiseCreated = this;
+	    };
+	};
+	return Context;
+	};
+
+	},{}],9:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, Context) {
+	var getDomain = Promise._getDomain;
+	var async = Promise._async;
+	var Warning = _dereq_("./errors").Warning;
+	var util = _dereq_("./util");
+	var canAttachTrace = util.canAttachTrace;
+	var unhandledRejectionHandled;
+	var possiblyUnhandledRejection;
+	var bluebirdFramePattern =
+	    /[\\\/]bluebird[\\\/]js[\\\/](release|debug|instrumented)/;
+	var nodeFramePattern = /\((?:timers\.js):\d+:\d+\)/;
+	var parseLinePattern = /[\/<\(](.+?):(\d+):(\d+)\)?\s*$/;
+	var stackFramePattern = null;
+	var formatStack = null;
+	var indentStackFrames = false;
+	var printWarning;
+	var debugging = !!(util.env("BLUEBIRD_DEBUG") != 0 &&
+	                        (true ||
+	                         util.env("BLUEBIRD_DEBUG") ||
+	                         util.env("NODE_ENV") === "development"));
+
+	var warnings = !!(util.env("BLUEBIRD_WARNINGS") != 0 &&
+	    (debugging || util.env("BLUEBIRD_WARNINGS")));
+
+	var longStackTraces = !!(util.env("BLUEBIRD_LONG_STACK_TRACES") != 0 &&
+	    (debugging || util.env("BLUEBIRD_LONG_STACK_TRACES")));
+
+	var wForgottenReturn = util.env("BLUEBIRD_W_FORGOTTEN_RETURN") != 0 &&
+	    (warnings || !!util.env("BLUEBIRD_W_FORGOTTEN_RETURN"));
+
+	Promise.prototype.suppressUnhandledRejections = function() {
+	    var target = this._target();
+	    target._bitField = ((target._bitField & (~1048576)) |
+	                      524288);
+	};
+
+	Promise.prototype._ensurePossibleRejectionHandled = function () {
+	    if ((this._bitField & 524288) !== 0) return;
+	    this._setRejectionIsUnhandled();
+	    async.invokeLater(this._notifyUnhandledRejection, this, undefined);
+	};
+
+	Promise.prototype._notifyUnhandledRejectionIsHandled = function () {
+	    fireRejectionEvent("rejectionHandled",
+	                                  unhandledRejectionHandled, undefined, this);
+	};
+
+	Promise.prototype._setReturnedNonUndefined = function() {
+	    this._bitField = this._bitField | 268435456;
+	};
+
+	Promise.prototype._returnedNonUndefined = function() {
+	    return (this._bitField & 268435456) !== 0;
+	};
+
+	Promise.prototype._notifyUnhandledRejection = function () {
+	    if (this._isRejectionUnhandled()) {
+	        var reason = this._settledValue();
+	        this._setUnhandledRejectionIsNotified();
+	        fireRejectionEvent("unhandledRejection",
+	                                      possiblyUnhandledRejection, reason, this);
+	    }
+	};
+
+	Promise.prototype._setUnhandledRejectionIsNotified = function () {
+	    this._bitField = this._bitField | 262144;
+	};
+
+	Promise.prototype._unsetUnhandledRejectionIsNotified = function () {
+	    this._bitField = this._bitField & (~262144);
+	};
+
+	Promise.prototype._isUnhandledRejectionNotified = function () {
+	    return (this._bitField & 262144) > 0;
+	};
+
+	Promise.prototype._setRejectionIsUnhandled = function () {
+	    this._bitField = this._bitField | 1048576;
+	};
+
+	Promise.prototype._unsetRejectionIsUnhandled = function () {
+	    this._bitField = this._bitField & (~1048576);
+	    if (this._isUnhandledRejectionNotified()) {
+	        this._unsetUnhandledRejectionIsNotified();
+	        this._notifyUnhandledRejectionIsHandled();
+	    }
+	};
+
+	Promise.prototype._isRejectionUnhandled = function () {
+	    return (this._bitField & 1048576) > 0;
+	};
+
+	Promise.prototype._warn = function(message, shouldUseOwnTrace, promise) {
+	    return warn(message, shouldUseOwnTrace, promise || this);
+	};
+
+	Promise.onPossiblyUnhandledRejection = function (fn) {
+	    var domain = getDomain();
+	    possiblyUnhandledRejection =
+	        typeof fn === "function" ? (domain === null ?
+	                                            fn : util.domainBind(domain, fn))
+	                                 : undefined;
+	};
+
+	Promise.onUnhandledRejectionHandled = function (fn) {
+	    var domain = getDomain();
+	    unhandledRejectionHandled =
+	        typeof fn === "function" ? (domain === null ?
+	                                            fn : util.domainBind(domain, fn))
+	                                 : undefined;
+	};
+
+	var disableLongStackTraces = function() {};
+	Promise.longStackTraces = function () {
+	    if (async.haveItemsQueued() && !config.longStackTraces) {
+	        throw new Error("cannot enable long stack traces after promises have been created\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	    if (!config.longStackTraces && longStackTracesIsSupported()) {
+	        var Promise_captureStackTrace = Promise.prototype._captureStackTrace;
+	        var Promise_attachExtraTrace = Promise.prototype._attachExtraTrace;
+	        config.longStackTraces = true;
+	        disableLongStackTraces = function() {
+	            if (async.haveItemsQueued() && !config.longStackTraces) {
+	                throw new Error("cannot enable long stack traces after promises have been created\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	            }
+	            Promise.prototype._captureStackTrace = Promise_captureStackTrace;
+	            Promise.prototype._attachExtraTrace = Promise_attachExtraTrace;
+	            Context.deactivateLongStackTraces();
+	            async.enableTrampoline();
+	            config.longStackTraces = false;
+	        };
+	        Promise.prototype._captureStackTrace = longStackTracesCaptureStackTrace;
+	        Promise.prototype._attachExtraTrace = longStackTracesAttachExtraTrace;
+	        Context.activateLongStackTraces();
+	        async.disableTrampolineIfNecessary();
+	    }
+	};
+
+	Promise.hasLongStackTraces = function () {
+	    return config.longStackTraces && longStackTracesIsSupported();
+	};
+
+	var fireDomEvent = (function() {
+	    try {
+	        if (typeof CustomEvent === "function") {
+	            var event = new CustomEvent("CustomEvent");
+	            util.global.dispatchEvent(event);
+	            return function(name, event) {
+	                var domEvent = new CustomEvent(name.toLowerCase(), {
+	                    detail: event,
+	                    cancelable: true
+	                });
+	                return !util.global.dispatchEvent(domEvent);
+	            };
+	        } else if (typeof Event === "function") {
+	            var event = new Event("CustomEvent");
+	            util.global.dispatchEvent(event);
+	            return function(name, event) {
+	                var domEvent = new Event(name.toLowerCase(), {
+	                    cancelable: true
+	                });
+	                domEvent.detail = event;
+	                return !util.global.dispatchEvent(domEvent);
+	            };
+	        } else {
+	            var event = document.createEvent("CustomEvent");
+	            event.initCustomEvent("testingtheevent", false, true, {});
+	            util.global.dispatchEvent(event);
+	            return function(name, event) {
+	                var domEvent = document.createEvent("CustomEvent");
+	                domEvent.initCustomEvent(name.toLowerCase(), false, true,
+	                    event);
+	                return !util.global.dispatchEvent(domEvent);
+	            };
+	        }
+	    } catch (e) {}
+	    return function() {
+	        return false;
+	    };
+	})();
+
+	var fireGlobalEvent = (function() {
+	    if (util.isNode) {
+	        return function() {
+	            return process.emit.apply(process, arguments);
+	        };
+	    } else {
+	        if (!util.global) {
+	            return function() {
+	                return false;
+	            };
+	        }
+	        return function(name) {
+	            var methodName = "on" + name.toLowerCase();
+	            var method = util.global[methodName];
+	            if (!method) return false;
+	            method.apply(util.global, [].slice.call(arguments, 1));
+	            return true;
+	        };
+	    }
+	})();
+
+	function generatePromiseLifecycleEventObject(name, promise) {
+	    return {promise: promise};
+	}
+
+	var eventToObjectGenerator = {
+	    promiseCreated: generatePromiseLifecycleEventObject,
+	    promiseFulfilled: generatePromiseLifecycleEventObject,
+	    promiseRejected: generatePromiseLifecycleEventObject,
+	    promiseResolved: generatePromiseLifecycleEventObject,
+	    promiseCancelled: generatePromiseLifecycleEventObject,
+	    promiseChained: function(name, promise, child) {
+	        return {promise: promise, child: child};
+	    },
+	    warning: function(name, warning) {
+	        return {warning: warning};
+	    },
+	    unhandledRejection: function (name, reason, promise) {
+	        return {reason: reason, promise: promise};
+	    },
+	    rejectionHandled: generatePromiseLifecycleEventObject
+	};
+
+	var activeFireEvent = function (name) {
+	    var globalEventFired = false;
+	    try {
+	        globalEventFired = fireGlobalEvent.apply(null, arguments);
+	    } catch (e) {
+	        async.throwLater(e);
+	        globalEventFired = true;
+	    }
+
+	    var domEventFired = false;
+	    try {
+	        domEventFired = fireDomEvent(name,
+	                    eventToObjectGenerator[name].apply(null, arguments));
+	    } catch (e) {
+	        async.throwLater(e);
+	        domEventFired = true;
+	    }
+
+	    return domEventFired || globalEventFired;
+	};
+
+	Promise.config = function(opts) {
+	    opts = Object(opts);
+	    if ("longStackTraces" in opts) {
+	        if (opts.longStackTraces) {
+	            Promise.longStackTraces();
+	        } else if (!opts.longStackTraces && Promise.hasLongStackTraces()) {
+	            disableLongStackTraces();
+	        }
+	    }
+	    if ("warnings" in opts) {
+	        var warningsOption = opts.warnings;
+	        config.warnings = !!warningsOption;
+	        wForgottenReturn = config.warnings;
+
+	        if (util.isObject(warningsOption)) {
+	            if ("wForgottenReturn" in warningsOption) {
+	                wForgottenReturn = !!warningsOption.wForgottenReturn;
+	            }
+	        }
+	    }
+	    if ("cancellation" in opts && opts.cancellation && !config.cancellation) {
+	        if (async.haveItemsQueued()) {
+	            throw new Error(
+	                "cannot enable cancellation after promises are in use");
+	        }
+	        Promise.prototype._clearCancellationData =
+	            cancellationClearCancellationData;
+	        Promise.prototype._propagateFrom = cancellationPropagateFrom;
+	        Promise.prototype._onCancel = cancellationOnCancel;
+	        Promise.prototype._setOnCancel = cancellationSetOnCancel;
+	        Promise.prototype._attachCancellationCallback =
+	            cancellationAttachCancellationCallback;
+	        Promise.prototype._execute = cancellationExecute;
+	        propagateFromFunction = cancellationPropagateFrom;
+	        config.cancellation = true;
+	    }
+	    if ("monitoring" in opts) {
+	        if (opts.monitoring && !config.monitoring) {
+	            config.monitoring = true;
+	            Promise.prototype._fireEvent = activeFireEvent;
+	        } else if (!opts.monitoring && config.monitoring) {
+	            config.monitoring = false;
+	            Promise.prototype._fireEvent = defaultFireEvent;
+	        }
+	    }
+	};
+
+	function defaultFireEvent() { return false; }
+
+	Promise.prototype._fireEvent = defaultFireEvent;
+	Promise.prototype._execute = function(executor, resolve, reject) {
+	    try {
+	        executor(resolve, reject);
+	    } catch (e) {
+	        return e;
+	    }
+	};
+	Promise.prototype._onCancel = function () {};
+	Promise.prototype._setOnCancel = function (handler) { ; };
+	Promise.prototype._attachCancellationCallback = function(onCancel) {
+	    ;
+	};
+	Promise.prototype._captureStackTrace = function () {};
+	Promise.prototype._attachExtraTrace = function () {};
+	Promise.prototype._clearCancellationData = function() {};
+	Promise.prototype._propagateFrom = function (parent, flags) {
+	    ;
+	    ;
+	};
+
+	function cancellationExecute(executor, resolve, reject) {
+	    var promise = this;
+	    try {
+	        executor(resolve, reject, function(onCancel) {
+	            if (typeof onCancel !== "function") {
+	                throw new TypeError("onCancel must be a function, got: " +
+	                                    util.toString(onCancel));
+	            }
+	            promise._attachCancellationCallback(onCancel);
+	        });
+	    } catch (e) {
+	        return e;
+	    }
+	}
+
+	function cancellationAttachCancellationCallback(onCancel) {
+	    if (!this._isCancellable()) return this;
+
+	    var previousOnCancel = this._onCancel();
+	    if (previousOnCancel !== undefined) {
+	        if (util.isArray(previousOnCancel)) {
+	            previousOnCancel.push(onCancel);
+	        } else {
+	            this._setOnCancel([previousOnCancel, onCancel]);
+	        }
+	    } else {
+	        this._setOnCancel(onCancel);
+	    }
+	}
+
+	function cancellationOnCancel() {
+	    return this._onCancelField;
+	}
+
+	function cancellationSetOnCancel(onCancel) {
+	    this._onCancelField = onCancel;
+	}
+
+	function cancellationClearCancellationData() {
+	    this._cancellationParent = undefined;
+	    this._onCancelField = undefined;
+	}
+
+	function cancellationPropagateFrom(parent, flags) {
+	    if ((flags & 1) !== 0) {
+	        this._cancellationParent = parent;
+	        var branchesRemainingToCancel = parent._branchesRemainingToCancel;
+	        if (branchesRemainingToCancel === undefined) {
+	            branchesRemainingToCancel = 0;
+	        }
+	        parent._branchesRemainingToCancel = branchesRemainingToCancel + 1;
+	    }
+	    if ((flags & 2) !== 0 && parent._isBound()) {
+	        this._setBoundTo(parent._boundTo);
+	    }
+	}
+
+	function bindingPropagateFrom(parent, flags) {
+	    if ((flags & 2) !== 0 && parent._isBound()) {
+	        this._setBoundTo(parent._boundTo);
+	    }
+	}
+	var propagateFromFunction = bindingPropagateFrom;
+
+	function boundValueFunction() {
+	    var ret = this._boundTo;
+	    if (ret !== undefined) {
+	        if (ret instanceof Promise) {
+	            if (ret.isFulfilled()) {
+	                return ret.value();
+	            } else {
+	                return undefined;
+	            }
+	        }
+	    }
+	    return ret;
+	}
+
+	function longStackTracesCaptureStackTrace() {
+	    this._trace = new CapturedTrace(this._peekContext());
+	}
+
+	function longStackTracesAttachExtraTrace(error, ignoreSelf) {
+	    if (canAttachTrace(error)) {
+	        var trace = this._trace;
+	        if (trace !== undefined) {
+	            if (ignoreSelf) trace = trace._parent;
+	        }
+	        if (trace !== undefined) {
+	            trace.attachExtraTrace(error);
+	        } else if (!error.__stackCleaned__) {
+	            var parsed = parseStackAndMessage(error);
+	            util.notEnumerableProp(error, "stack",
+	                parsed.message + "\n" + parsed.stack.join("\n"));
+	            util.notEnumerableProp(error, "__stackCleaned__", true);
+	        }
+	    }
+	}
+
+	function checkForgottenReturns(returnValue, promiseCreated, name, promise,
+	                               parent) {
+	    if (returnValue === undefined && promiseCreated !== null &&
+	        wForgottenReturn) {
+	        if (parent !== undefined && parent._returnedNonUndefined()) return;
+	        if ((promise._bitField & 65535) === 0) return;
+
+	        if (name) name = name + " ";
+	        var handlerLine = "";
+	        var creatorLine = "";
+	        if (promiseCreated._trace) {
+	            var traceLines = promiseCreated._trace.stack.split("\n");
+	            var stack = cleanStack(traceLines);
+	            for (var i = stack.length - 1; i >= 0; --i) {
+	                var line = stack[i];
+	                if (!nodeFramePattern.test(line)) {
+	                    var lineMatches = line.match(parseLinePattern);
+	                    if (lineMatches) {
+	                        handlerLine  = "at " + lineMatches[1] +
+	                            ":" + lineMatches[2] + ":" + lineMatches[3] + " ";
+	                    }
+	                    break;
+	                }
+	            }
+
+	            if (stack.length > 0) {
+	                var firstUserLine = stack[0];
+	                for (var i = 0; i < traceLines.length; ++i) {
+
+	                    if (traceLines[i] === firstUserLine) {
+	                        if (i > 0) {
+	                            creatorLine = "\n" + traceLines[i - 1];
+	                        }
+	                        break;
+	                    }
+	                }
+
+	            }
+	        }
+	        var msg = "a promise was created in a " + name +
+	            "handler " + handlerLine + "but was not returned from it, " +
+	            "see http://goo.gl/rRqMUw" +
+	            creatorLine;
+	        promise._warn(msg, true, promiseCreated);
+	    }
+	}
+
+	function deprecated(name, replacement) {
+	    var message = name +
+	        " is deprecated and will be removed in a future version.";
+	    if (replacement) message += " Use " + replacement + " instead.";
+	    return warn(message);
+	}
+
+	function warn(message, shouldUseOwnTrace, promise) {
+	    if (!config.warnings) return;
+	    var warning = new Warning(message);
+	    var ctx;
+	    if (shouldUseOwnTrace) {
+	        promise._attachExtraTrace(warning);
+	    } else if (config.longStackTraces && (ctx = Promise._peekContext())) {
+	        ctx.attachExtraTrace(warning);
+	    } else {
+	        var parsed = parseStackAndMessage(warning);
+	        warning.stack = parsed.message + "\n" + parsed.stack.join("\n");
+	    }
+
+	    if (!activeFireEvent("warning", warning)) {
+	        formatAndLogError(warning, "", true);
+	    }
+	}
+
+	function reconstructStack(message, stacks) {
+	    for (var i = 0; i < stacks.length - 1; ++i) {
+	        stacks[i].push("From previous event:");
+	        stacks[i] = stacks[i].join("\n");
+	    }
+	    if (i < stacks.length) {
+	        stacks[i] = stacks[i].join("\n");
+	    }
+	    return message + "\n" + stacks.join("\n");
+	}
+
+	function removeDuplicateOrEmptyJumps(stacks) {
+	    for (var i = 0; i < stacks.length; ++i) {
+	        if (stacks[i].length === 0 ||
+	            ((i + 1 < stacks.length) && stacks[i][0] === stacks[i+1][0])) {
+	            stacks.splice(i, 1);
+	            i--;
+	        }
+	    }
+	}
+
+	function removeCommonRoots(stacks) {
+	    var current = stacks[0];
+	    for (var i = 1; i < stacks.length; ++i) {
+	        var prev = stacks[i];
+	        var currentLastIndex = current.length - 1;
+	        var currentLastLine = current[currentLastIndex];
+	        var commonRootMeetPoint = -1;
+
+	        for (var j = prev.length - 1; j >= 0; --j) {
+	            if (prev[j] === currentLastLine) {
+	                commonRootMeetPoint = j;
+	                break;
+	            }
+	        }
+
+	        for (var j = commonRootMeetPoint; j >= 0; --j) {
+	            var line = prev[j];
+	            if (current[currentLastIndex] === line) {
+	                current.pop();
+	                currentLastIndex--;
+	            } else {
+	                break;
+	            }
+	        }
+	        current = prev;
+	    }
+	}
+
+	function cleanStack(stack) {
+	    var ret = [];
+	    for (var i = 0; i < stack.length; ++i) {
+	        var line = stack[i];
+	        var isTraceLine = "    (No stack trace)" === line ||
+	            stackFramePattern.test(line);
+	        var isInternalFrame = isTraceLine && shouldIgnore(line);
+	        if (isTraceLine && !isInternalFrame) {
+	            if (indentStackFrames && line.charAt(0) !== " ") {
+	                line = "    " + line;
+	            }
+	            ret.push(line);
+	        }
+	    }
+	    return ret;
+	}
+
+	function stackFramesAsArray(error) {
+	    var stack = error.stack.replace(/\s+$/g, "").split("\n");
+	    for (var i = 0; i < stack.length; ++i) {
+	        var line = stack[i];
+	        if ("    (No stack trace)" === line || stackFramePattern.test(line)) {
+	            break;
+	        }
+	    }
+	    if (i > 0) {
+	        stack = stack.slice(i);
+	    }
+	    return stack;
+	}
+
+	function parseStackAndMessage(error) {
+	    var stack = error.stack;
+	    var message = error.toString();
+	    stack = typeof stack === "string" && stack.length > 0
+	                ? stackFramesAsArray(error) : ["    (No stack trace)"];
+	    return {
+	        message: message,
+	        stack: cleanStack(stack)
+	    };
+	}
+
+	function formatAndLogError(error, title, isSoft) {
+	    if (typeof console !== "undefined") {
+	        var message;
+	        if (util.isObject(error)) {
+	            var stack = error.stack;
+	            message = title + formatStack(stack, error);
+	        } else {
+	            message = title + String(error);
+	        }
+	        if (typeof printWarning === "function") {
+	            printWarning(message, isSoft);
+	        } else if (typeof console.log === "function" ||
+	            typeof console.log === "object") {
+	            console.log(message);
+	        }
+	    }
+	}
+
+	function fireRejectionEvent(name, localHandler, reason, promise) {
+	    var localEventFired = false;
+	    try {
+	        if (typeof localHandler === "function") {
+	            localEventFired = true;
+	            if (name === "rejectionHandled") {
+	                localHandler(promise);
+	            } else {
+	                localHandler(reason, promise);
+	            }
+	        }
+	    } catch (e) {
+	        async.throwLater(e);
+	    }
+
+	    if (name === "unhandledRejection") {
+	        if (!activeFireEvent(name, reason, promise) && !localEventFired) {
+	            formatAndLogError(reason, "Unhandled rejection ");
+	        }
+	    } else {
+	        activeFireEvent(name, promise);
+	    }
+	}
+
+	function formatNonError(obj) {
+	    var str;
+	    if (typeof obj === "function") {
+	        str = "[function " +
+	            (obj.name || "anonymous") +
+	            "]";
+	    } else {
+	        str = obj && typeof obj.toString === "function"
+	            ? obj.toString() : util.toString(obj);
+	        var ruselessToString = /\[object [a-zA-Z0-9$_]+\]/;
+	        if (ruselessToString.test(str)) {
+	            try {
+	                var newStr = JSON.stringify(obj);
+	                str = newStr;
+	            }
+	            catch(e) {
+
+	            }
+	        }
+	        if (str.length === 0) {
+	            str = "(empty array)";
+	        }
+	    }
+	    return ("(<" + snip(str) + ">, no stack trace)");
+	}
+
+	function snip(str) {
+	    var maxChars = 41;
+	    if (str.length < maxChars) {
+	        return str;
+	    }
+	    return str.substr(0, maxChars - 3) + "...";
+	}
+
+	function longStackTracesIsSupported() {
+	    return typeof captureStackTrace === "function";
+	}
+
+	var shouldIgnore = function() { return false; };
+	var parseLineInfoRegex = /[\/<\(]([^:\/]+):(\d+):(?:\d+)\)?\s*$/;
+	function parseLineInfo(line) {
+	    var matches = line.match(parseLineInfoRegex);
+	    if (matches) {
+	        return {
+	            fileName: matches[1],
+	            line: parseInt(matches[2], 10)
+	        };
+	    }
+	}
+
+	function setBounds(firstLineError, lastLineError) {
+	    if (!longStackTracesIsSupported()) return;
+	    var firstStackLines = firstLineError.stack.split("\n");
+	    var lastStackLines = lastLineError.stack.split("\n");
+	    var firstIndex = -1;
+	    var lastIndex = -1;
+	    var firstFileName;
+	    var lastFileName;
+	    for (var i = 0; i < firstStackLines.length; ++i) {
+	        var result = parseLineInfo(firstStackLines[i]);
+	        if (result) {
+	            firstFileName = result.fileName;
+	            firstIndex = result.line;
+	            break;
+	        }
+	    }
+	    for (var i = 0; i < lastStackLines.length; ++i) {
+	        var result = parseLineInfo(lastStackLines[i]);
+	        if (result) {
+	            lastFileName = result.fileName;
+	            lastIndex = result.line;
+	            break;
+	        }
+	    }
+	    if (firstIndex < 0 || lastIndex < 0 || !firstFileName || !lastFileName ||
+	        firstFileName !== lastFileName || firstIndex >= lastIndex) {
+	        return;
+	    }
+
+	    shouldIgnore = function(line) {
+	        if (bluebirdFramePattern.test(line)) return true;
+	        var info = parseLineInfo(line);
+	        if (info) {
+	            if (info.fileName === firstFileName &&
+	                (firstIndex <= info.line && info.line <= lastIndex)) {
+	                return true;
+	            }
+	        }
+	        return false;
+	    };
+	}
+
+	function CapturedTrace(parent) {
+	    this._parent = parent;
+	    this._promisesCreated = 0;
+	    var length = this._length = 1 + (parent === undefined ? 0 : parent._length);
+	    captureStackTrace(this, CapturedTrace);
+	    if (length > 32) this.uncycle();
+	}
+	util.inherits(CapturedTrace, Error);
+	Context.CapturedTrace = CapturedTrace;
+
+	CapturedTrace.prototype.uncycle = function() {
+	    var length = this._length;
+	    if (length < 2) return;
+	    var nodes = [];
+	    var stackToIndex = {};
+
+	    for (var i = 0, node = this; node !== undefined; ++i) {
+	        nodes.push(node);
+	        node = node._parent;
+	    }
+	    length = this._length = i;
+	    for (var i = length - 1; i >= 0; --i) {
+	        var stack = nodes[i].stack;
+	        if (stackToIndex[stack] === undefined) {
+	            stackToIndex[stack] = i;
+	        }
+	    }
+	    for (var i = 0; i < length; ++i) {
+	        var currentStack = nodes[i].stack;
+	        var index = stackToIndex[currentStack];
+	        if (index !== undefined && index !== i) {
+	            if (index > 0) {
+	                nodes[index - 1]._parent = undefined;
+	                nodes[index - 1]._length = 1;
+	            }
+	            nodes[i]._parent = undefined;
+	            nodes[i]._length = 1;
+	            var cycleEdgeNode = i > 0 ? nodes[i - 1] : this;
+
+	            if (index < length - 1) {
+	                cycleEdgeNode._parent = nodes[index + 1];
+	                cycleEdgeNode._parent.uncycle();
+	                cycleEdgeNode._length =
+	                    cycleEdgeNode._parent._length + 1;
+	            } else {
+	                cycleEdgeNode._parent = undefined;
+	                cycleEdgeNode._length = 1;
+	            }
+	            var currentChildLength = cycleEdgeNode._length + 1;
+	            for (var j = i - 2; j >= 0; --j) {
+	                nodes[j]._length = currentChildLength;
+	                currentChildLength++;
+	            }
+	            return;
+	        }
+	    }
+	};
+
+	CapturedTrace.prototype.attachExtraTrace = function(error) {
+	    if (error.__stackCleaned__) return;
+	    this.uncycle();
+	    var parsed = parseStackAndMessage(error);
+	    var message = parsed.message;
+	    var stacks = [parsed.stack];
+
+	    var trace = this;
+	    while (trace !== undefined) {
+	        stacks.push(cleanStack(trace.stack.split("\n")));
+	        trace = trace._parent;
+	    }
+	    removeCommonRoots(stacks);
+	    removeDuplicateOrEmptyJumps(stacks);
+	    util.notEnumerableProp(error, "stack", reconstructStack(message, stacks));
+	    util.notEnumerableProp(error, "__stackCleaned__", true);
+	};
+
+	var captureStackTrace = (function stackDetection() {
+	    var v8stackFramePattern = /^\s*at\s*/;
+	    var v8stackFormatter = function(stack, error) {
+	        if (typeof stack === "string") return stack;
+
+	        if (error.name !== undefined &&
+	            error.message !== undefined) {
+	            return error.toString();
+	        }
+	        return formatNonError(error);
+	    };
+
+	    if (typeof Error.stackTraceLimit === "number" &&
+	        typeof Error.captureStackTrace === "function") {
+	        Error.stackTraceLimit += 6;
+	        stackFramePattern = v8stackFramePattern;
+	        formatStack = v8stackFormatter;
+	        var captureStackTrace = Error.captureStackTrace;
+
+	        shouldIgnore = function(line) {
+	            return bluebirdFramePattern.test(line);
+	        };
+	        return function(receiver, ignoreUntil) {
+	            Error.stackTraceLimit += 6;
+	            captureStackTrace(receiver, ignoreUntil);
+	            Error.stackTraceLimit -= 6;
+	        };
+	    }
+	    var err = new Error();
+
+	    if (typeof err.stack === "string" &&
+	        err.stack.split("\n")[0].indexOf("stackDetection@") >= 0) {
+	        stackFramePattern = /@/;
+	        formatStack = v8stackFormatter;
+	        indentStackFrames = true;
+	        return function captureStackTrace(o) {
+	            o.stack = new Error().stack;
+	        };
+	    }
+
+	    var hasStackAfterThrow;
+	    try { throw new Error(); }
+	    catch(e) {
+	        hasStackAfterThrow = ("stack" in e);
+	    }
+	    if (!("stack" in err) && hasStackAfterThrow &&
+	        typeof Error.stackTraceLimit === "number") {
+	        stackFramePattern = v8stackFramePattern;
+	        formatStack = v8stackFormatter;
+	        return function captureStackTrace(o) {
+	            Error.stackTraceLimit += 6;
+	            try { throw new Error(); }
+	            catch(e) { o.stack = e.stack; }
+	            Error.stackTraceLimit -= 6;
+	        };
+	    }
+
+	    formatStack = function(stack, error) {
+	        if (typeof stack === "string") return stack;
+
+	        if ((typeof error === "object" ||
+	            typeof error === "function") &&
+	            error.name !== undefined &&
+	            error.message !== undefined) {
+	            return error.toString();
+	        }
+	        return formatNonError(error);
+	    };
+
+	    return null;
+
+	})([]);
+
+	if (typeof console !== "undefined" && typeof console.warn !== "undefined") {
+	    printWarning = function (message) {
+	        console.warn(message);
+	    };
+	    if (util.isNode && process.stderr.isTTY) {
+	        printWarning = function(message, isSoft) {
+	            var color = isSoft ? "\u001b[33m" : "\u001b[31m";
+	            console.warn(color + message + "\u001b[0m\n");
+	        };
+	    } else if (!util.isNode && typeof (new Error().stack) === "string") {
+	        printWarning = function(message, isSoft) {
+	            console.warn("%c" + message,
+	                        isSoft ? "color: darkorange" : "color: red");
+	        };
+	    }
+	}
+
+	var config = {
+	    warnings: warnings,
+	    longStackTraces: false,
+	    cancellation: false,
+	    monitoring: false
+	};
+
+	if (longStackTraces) Promise.longStackTraces();
+
+	return {
+	    longStackTraces: function() {
+	        return config.longStackTraces;
+	    },
+	    warnings: function() {
+	        return config.warnings;
+	    },
+	    cancellation: function() {
+	        return config.cancellation;
+	    },
+	    monitoring: function() {
+	        return config.monitoring;
+	    },
+	    propagateFromFunction: function() {
+	        return propagateFromFunction;
+	    },
+	    boundValueFunction: function() {
+	        return boundValueFunction;
+	    },
+	    checkForgottenReturns: checkForgottenReturns,
+	    setBounds: setBounds,
+	    warn: warn,
+	    deprecated: deprecated,
+	    CapturedTrace: CapturedTrace,
+	    fireDomEvent: fireDomEvent,
+	    fireGlobalEvent: fireGlobalEvent
+	};
+	};
+
+	},{"./errors":12,"./util":36}],10:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise) {
+	function returner() {
+	    return this.value;
+	}
+	function thrower() {
+	    throw this.reason;
+	}
+
+	Promise.prototype["return"] =
+	Promise.prototype.thenReturn = function (value) {
+	    if (value instanceof Promise) value.suppressUnhandledRejections();
+	    return this._then(
+	        returner, undefined, undefined, {value: value}, undefined);
+	};
+
+	Promise.prototype["throw"] =
+	Promise.prototype.thenThrow = function (reason) {
+	    return this._then(
+	        thrower, undefined, undefined, {reason: reason}, undefined);
+	};
+
+	Promise.prototype.catchThrow = function (reason) {
+	    if (arguments.length <= 1) {
+	        return this._then(
+	            undefined, thrower, undefined, {reason: reason}, undefined);
+	    } else {
+	        var _reason = arguments[1];
+	        var handler = function() {throw _reason;};
+	        return this.caught(reason, handler);
+	    }
+	};
+
+	Promise.prototype.catchReturn = function (value) {
+	    if (arguments.length <= 1) {
+	        if (value instanceof Promise) value.suppressUnhandledRejections();
+	        return this._then(
+	            undefined, returner, undefined, {value: value}, undefined);
+	    } else {
+	        var _value = arguments[1];
+	        if (_value instanceof Promise) _value.suppressUnhandledRejections();
+	        var handler = function() {return _value;};
+	        return this.caught(value, handler);
+	    }
+	};
+	};
+
+	},{}],11:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, INTERNAL) {
+	var PromiseReduce = Promise.reduce;
+	var PromiseAll = Promise.all;
+
+	function promiseAllThis() {
+	    return PromiseAll(this);
+	}
+
+	function PromiseMapSeries(promises, fn) {
+	    return PromiseReduce(promises, fn, INTERNAL, INTERNAL);
+	}
+
+	Promise.prototype.each = function (fn) {
+	    return PromiseReduce(this, fn, INTERNAL, 0)
+	              ._then(promiseAllThis, undefined, undefined, this, undefined);
+	};
+
+	Promise.prototype.mapSeries = function (fn) {
+	    return PromiseReduce(this, fn, INTERNAL, INTERNAL);
+	};
+
+	Promise.each = function (promises, fn) {
+	    return PromiseReduce(promises, fn, INTERNAL, 0)
+	              ._then(promiseAllThis, undefined, undefined, promises, undefined);
+	};
+
+	Promise.mapSeries = PromiseMapSeries;
+	};
+
+
+	},{}],12:[function(_dereq_,module,exports){
+	"use strict";
+	var es5 = _dereq_("./es5");
+	var Objectfreeze = es5.freeze;
+	var util = _dereq_("./util");
+	var inherits = util.inherits;
+	var notEnumerableProp = util.notEnumerableProp;
+
+	function subError(nameProperty, defaultMessage) {
+	    function SubError(message) {
+	        if (!(this instanceof SubError)) return new SubError(message);
+	        notEnumerableProp(this, "message",
+	            typeof message === "string" ? message : defaultMessage);
+	        notEnumerableProp(this, "name", nameProperty);
+	        if (Error.captureStackTrace) {
+	            Error.captureStackTrace(this, this.constructor);
+	        } else {
+	            Error.call(this);
+	        }
+	    }
+	    inherits(SubError, Error);
+	    return SubError;
+	}
+
+	var _TypeError, _RangeError;
+	var Warning = subError("Warning", "warning");
+	var CancellationError = subError("CancellationError", "cancellation error");
+	var TimeoutError = subError("TimeoutError", "timeout error");
+	var AggregateError = subError("AggregateError", "aggregate error");
+	try {
+	    _TypeError = TypeError;
+	    _RangeError = RangeError;
+	} catch(e) {
+	    _TypeError = subError("TypeError", "type error");
+	    _RangeError = subError("RangeError", "range error");
+	}
+
+	var methods = ("join pop push shift unshift slice filter forEach some " +
+	    "every map indexOf lastIndexOf reduce reduceRight sort reverse").split(" ");
+
+	for (var i = 0; i < methods.length; ++i) {
+	    if (typeof Array.prototype[methods[i]] === "function") {
+	        AggregateError.prototype[methods[i]] = Array.prototype[methods[i]];
+	    }
+	}
+
+	es5.defineProperty(AggregateError.prototype, "length", {
+	    value: 0,
+	    configurable: false,
+	    writable: true,
+	    enumerable: true
+	});
+	AggregateError.prototype["isOperational"] = true;
+	var level = 0;
+	AggregateError.prototype.toString = function() {
+	    var indent = Array(level * 4 + 1).join(" ");
+	    var ret = "\n" + indent + "AggregateError of:" + "\n";
+	    level++;
+	    indent = Array(level * 4 + 1).join(" ");
+	    for (var i = 0; i < this.length; ++i) {
+	        var str = this[i] === this ? "[Circular AggregateError]" : this[i] + "";
+	        var lines = str.split("\n");
+	        for (var j = 0; j < lines.length; ++j) {
+	            lines[j] = indent + lines[j];
+	        }
+	        str = lines.join("\n");
+	        ret += str + "\n";
+	    }
+	    level--;
+	    return ret;
+	};
+
+	function OperationalError(message) {
+	    if (!(this instanceof OperationalError))
+	        return new OperationalError(message);
+	    notEnumerableProp(this, "name", "OperationalError");
+	    notEnumerableProp(this, "message", message);
+	    this.cause = message;
+	    this["isOperational"] = true;
+
+	    if (message instanceof Error) {
+	        notEnumerableProp(this, "message", message.message);
+	        notEnumerableProp(this, "stack", message.stack);
+	    } else if (Error.captureStackTrace) {
+	        Error.captureStackTrace(this, this.constructor);
+	    }
+
+	}
+	inherits(OperationalError, Error);
+
+	var errorTypes = Error["__BluebirdErrorTypes__"];
+	if (!errorTypes) {
+	    errorTypes = Objectfreeze({
+	        CancellationError: CancellationError,
+	        TimeoutError: TimeoutError,
+	        OperationalError: OperationalError,
+	        RejectionError: OperationalError,
+	        AggregateError: AggregateError
+	    });
+	    es5.defineProperty(Error, "__BluebirdErrorTypes__", {
+	        value: errorTypes,
+	        writable: false,
+	        enumerable: false,
+	        configurable: false
+	    });
+	}
+
+	module.exports = {
+	    Error: Error,
+	    TypeError: _TypeError,
+	    RangeError: _RangeError,
+	    CancellationError: errorTypes.CancellationError,
+	    OperationalError: errorTypes.OperationalError,
+	    TimeoutError: errorTypes.TimeoutError,
+	    AggregateError: errorTypes.AggregateError,
+	    Warning: Warning
+	};
+
+	},{"./es5":13,"./util":36}],13:[function(_dereq_,module,exports){
+	var isES5 = (function(){
+	    "use strict";
+	    return this === undefined;
+	})();
+
+	if (isES5) {
+	    module.exports = {
+	        freeze: Object.freeze,
+	        defineProperty: Object.defineProperty,
+	        getDescriptor: Object.getOwnPropertyDescriptor,
+	        keys: Object.keys,
+	        names: Object.getOwnPropertyNames,
+	        getPrototypeOf: Object.getPrototypeOf,
+	        isArray: Array.isArray,
+	        isES5: isES5,
+	        propertyIsWritable: function(obj, prop) {
+	            var descriptor = Object.getOwnPropertyDescriptor(obj, prop);
+	            return !!(!descriptor || descriptor.writable || descriptor.set);
+	        }
+	    };
+	} else {
+	    var has = {}.hasOwnProperty;
+	    var str = {}.toString;
+	    var proto = {}.constructor.prototype;
+
+	    var ObjectKeys = function (o) {
+	        var ret = [];
+	        for (var key in o) {
+	            if (has.call(o, key)) {
+	                ret.push(key);
+	            }
+	        }
+	        return ret;
+	    };
+
+	    var ObjectGetDescriptor = function(o, key) {
+	        return {value: o[key]};
+	    };
+
+	    var ObjectDefineProperty = function (o, key, desc) {
+	        o[key] = desc.value;
+	        return o;
+	    };
+
+	    var ObjectFreeze = function (obj) {
+	        return obj;
+	    };
+
+	    var ObjectGetPrototypeOf = function (obj) {
+	        try {
+	            return Object(obj).constructor.prototype;
+	        }
+	        catch (e) {
+	            return proto;
+	        }
+	    };
+
+	    var ArrayIsArray = function (obj) {
+	        try {
+	            return str.call(obj) === "[object Array]";
+	        }
+	        catch(e) {
+	            return false;
+	        }
+	    };
+
+	    module.exports = {
+	        isArray: ArrayIsArray,
+	        keys: ObjectKeys,
+	        names: ObjectKeys,
+	        defineProperty: ObjectDefineProperty,
+	        getDescriptor: ObjectGetDescriptor,
+	        freeze: ObjectFreeze,
+	        getPrototypeOf: ObjectGetPrototypeOf,
+	        isES5: isES5,
+	        propertyIsWritable: function() {
+	            return true;
+	        }
+	    };
+	}
+
+	},{}],14:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, INTERNAL) {
+	var PromiseMap = Promise.map;
+
+	Promise.prototype.filter = function (fn, options) {
+	    return PromiseMap(this, fn, options, INTERNAL);
+	};
+
+	Promise.filter = function (promises, fn, options) {
+	    return PromiseMap(promises, fn, options, INTERNAL);
+	};
+	};
+
+	},{}],15:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, tryConvertToPromise) {
+	var util = _dereq_("./util");
+	var CancellationError = Promise.CancellationError;
+	var errorObj = util.errorObj;
+
+	function PassThroughHandlerContext(promise, type, handler) {
+	    this.promise = promise;
+	    this.type = type;
+	    this.handler = handler;
+	    this.called = false;
+	    this.cancelPromise = null;
+	}
+
+	PassThroughHandlerContext.prototype.isFinallyHandler = function() {
+	    return this.type === 0;
+	};
+
+	function FinallyHandlerCancelReaction(finallyHandler) {
+	    this.finallyHandler = finallyHandler;
+	}
+
+	FinallyHandlerCancelReaction.prototype._resultCancelled = function() {
+	    checkCancel(this.finallyHandler);
+	};
+
+	function checkCancel(ctx, reason) {
+	    if (ctx.cancelPromise != null) {
+	        if (arguments.length > 1) {
+	            ctx.cancelPromise._reject(reason);
+	        } else {
+	            ctx.cancelPromise._cancel();
+	        }
+	        ctx.cancelPromise = null;
+	        return true;
+	    }
+	    return false;
+	}
+
+	function succeed() {
+	    return finallyHandler.call(this, this.promise._target()._settledValue());
+	}
+	function fail(reason) {
+	    if (checkCancel(this, reason)) return;
+	    errorObj.e = reason;
+	    return errorObj;
+	}
+	function finallyHandler(reasonOrValue) {
+	    var promise = this.promise;
+	    var handler = this.handler;
+
+	    if (!this.called) {
+	        this.called = true;
+	        var ret = this.isFinallyHandler()
+	            ? handler.call(promise._boundValue())
+	            : handler.call(promise._boundValue(), reasonOrValue);
+	        if (ret !== undefined) {
+	            promise._setReturnedNonUndefined();
+	            var maybePromise = tryConvertToPromise(ret, promise);
+	            if (maybePromise instanceof Promise) {
+	                if (this.cancelPromise != null) {
+	                    if (maybePromise._isCancelled()) {
+	                        var reason =
+	                            new CancellationError("late cancellation observer");
+	                        promise._attachExtraTrace(reason);
+	                        errorObj.e = reason;
+	                        return errorObj;
+	                    } else if (maybePromise.isPending()) {
+	                        maybePromise._attachCancellationCallback(
+	                            new FinallyHandlerCancelReaction(this));
+	                    }
+	                }
+	                return maybePromise._then(
+	                    succeed, fail, undefined, this, undefined);
+	            }
+	        }
+	    }
+
+	    if (promise.isRejected()) {
+	        checkCancel(this);
+	        errorObj.e = reasonOrValue;
+	        return errorObj;
+	    } else {
+	        checkCancel(this);
+	        return reasonOrValue;
+	    }
+	}
+
+	Promise.prototype._passThrough = function(handler, type, success, fail) {
+	    if (typeof handler !== "function") return this.then();
+	    return this._then(success,
+	                      fail,
+	                      undefined,
+	                      new PassThroughHandlerContext(this, type, handler),
+	                      undefined);
+	};
+
+	Promise.prototype.lastly =
+	Promise.prototype["finally"] = function (handler) {
+	    return this._passThrough(handler,
+	                             0,
+	                             finallyHandler,
+	                             finallyHandler);
+	};
+
+	Promise.prototype.tap = function (handler) {
+	    return this._passThrough(handler, 1, finallyHandler);
+	};
+
+	return PassThroughHandlerContext;
+	};
+
+	},{"./util":36}],16:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise,
+	                          apiRejection,
+	                          INTERNAL,
+	                          tryConvertToPromise,
+	                          Proxyable,
+	                          debug) {
+	var errors = _dereq_("./errors");
+	var TypeError = errors.TypeError;
+	var util = _dereq_("./util");
+	var errorObj = util.errorObj;
+	var tryCatch = util.tryCatch;
+	var yieldHandlers = [];
+
+	function promiseFromYieldHandler(value, yieldHandlers, traceParent) {
+	    for (var i = 0; i < yieldHandlers.length; ++i) {
+	        traceParent._pushContext();
+	        var result = tryCatch(yieldHandlers[i])(value);
+	        traceParent._popContext();
+	        if (result === errorObj) {
+	            traceParent._pushContext();
+	            var ret = Promise.reject(errorObj.e);
+	            traceParent._popContext();
+	            return ret;
+	        }
+	        var maybePromise = tryConvertToPromise(result, traceParent);
+	        if (maybePromise instanceof Promise) return maybePromise;
+	    }
+	    return null;
+	}
+
+	function PromiseSpawn(generatorFunction, receiver, yieldHandler, stack) {
+	    if (debug.cancellation()) {
+	        var internal = new Promise(INTERNAL);
+	        var _finallyPromise = this._finallyPromise = new Promise(INTERNAL);
+	        this._promise = internal.lastly(function() {
+	            return _finallyPromise;
+	        });
+	        internal._captureStackTrace();
+	        internal._setOnCancel(this);
+	    } else {
+	        var promise = this._promise = new Promise(INTERNAL);
+	        promise._captureStackTrace();
+	    }
+	    this._stack = stack;
+	    this._generatorFunction = generatorFunction;
+	    this._receiver = receiver;
+	    this._generator = undefined;
+	    this._yieldHandlers = typeof yieldHandler === "function"
+	        ? [yieldHandler].concat(yieldHandlers)
+	        : yieldHandlers;
+	    this._yieldedPromise = null;
+	    this._cancellationPhase = false;
+	}
+	util.inherits(PromiseSpawn, Proxyable);
+
+	PromiseSpawn.prototype._isResolved = function() {
+	    return this._promise === null;
+	};
+
+	PromiseSpawn.prototype._cleanup = function() {
+	    this._promise = this._generator = null;
+	    if (debug.cancellation() && this._finallyPromise !== null) {
+	        this._finallyPromise._fulfill();
+	        this._finallyPromise = null;
+	    }
+	};
+
+	PromiseSpawn.prototype._promiseCancelled = function() {
+	    if (this._isResolved()) return;
+	    var implementsReturn = typeof this._generator["return"] !== "undefined";
+
+	    var result;
+	    if (!implementsReturn) {
+	        var reason = new Promise.CancellationError(
+	            "generator .return() sentinel");
+	        Promise.coroutine.returnSentinel = reason;
+	        this._promise._attachExtraTrace(reason);
+	        this._promise._pushContext();
+	        result = tryCatch(this._generator["throw"]).call(this._generator,
+	                                                         reason);
+	        this._promise._popContext();
+	    } else {
+	        this._promise._pushContext();
+	        result = tryCatch(this._generator["return"]).call(this._generator,
+	                                                          undefined);
+	        this._promise._popContext();
+	    }
+	    this._cancellationPhase = true;
+	    this._yieldedPromise = null;
+	    this._continue(result);
+	};
+
+	PromiseSpawn.prototype._promiseFulfilled = function(value) {
+	    this._yieldedPromise = null;
+	    this._promise._pushContext();
+	    var result = tryCatch(this._generator.next).call(this._generator, value);
+	    this._promise._popContext();
+	    this._continue(result);
+	};
+
+	PromiseSpawn.prototype._promiseRejected = function(reason) {
+	    this._yieldedPromise = null;
+	    this._promise._attachExtraTrace(reason);
+	    this._promise._pushContext();
+	    var result = tryCatch(this._generator["throw"])
+	        .call(this._generator, reason);
+	    this._promise._popContext();
+	    this._continue(result);
+	};
+
+	PromiseSpawn.prototype._resultCancelled = function() {
+	    if (this._yieldedPromise instanceof Promise) {
+	        var promise = this._yieldedPromise;
+	        this._yieldedPromise = null;
+	        promise.cancel();
+	    }
+	};
+
+	PromiseSpawn.prototype.promise = function () {
+	    return this._promise;
+	};
+
+	PromiseSpawn.prototype._run = function () {
+	    this._generator = this._generatorFunction.call(this._receiver);
+	    this._receiver =
+	        this._generatorFunction = undefined;
+	    this._promiseFulfilled(undefined);
+	};
+
+	PromiseSpawn.prototype._continue = function (result) {
+	    var promise = this._promise;
+	    if (result === errorObj) {
+	        this._cleanup();
+	        if (this._cancellationPhase) {
+	            return promise.cancel();
+	        } else {
+	            return promise._rejectCallback(result.e, false);
+	        }
+	    }
+
+	    var value = result.value;
+	    if (result.done === true) {
+	        this._cleanup();
+	        if (this._cancellationPhase) {
+	            return promise.cancel();
+	        } else {
+	            return promise._resolveCallback(value);
+	        }
+	    } else {
+	        var maybePromise = tryConvertToPromise(value, this._promise);
+	        if (!(maybePromise instanceof Promise)) {
+	            maybePromise =
+	                promiseFromYieldHandler(maybePromise,
+	                                        this._yieldHandlers,
+	                                        this._promise);
+	            if (maybePromise === null) {
+	                this._promiseRejected(
+	                    new TypeError(
+	                        "A value %s was yielded that could not be treated as a promise\u000a\u000a    See http://goo.gl/MqrFmX\u000a\u000a".replace("%s", value) +
+	                        "From coroutine:\u000a" +
+	                        this._stack.split("\n").slice(1, -7).join("\n")
+	                    )
+	                );
+	                return;
+	            }
+	        }
+	        maybePromise = maybePromise._target();
+	        var bitField = maybePromise._bitField;
+	        ;
+	        if (((bitField & 50397184) === 0)) {
+	            this._yieldedPromise = maybePromise;
+	            maybePromise._proxy(this, null);
+	        } else if (((bitField & 33554432) !== 0)) {
+	            Promise._async.invoke(
+	                this._promiseFulfilled, this, maybePromise._value()
+	            );
+	        } else if (((bitField & 16777216) !== 0)) {
+	            Promise._async.invoke(
+	                this._promiseRejected, this, maybePromise._reason()
+	            );
+	        } else {
+	            this._promiseCancelled();
+	        }
+	    }
+	};
+
+	Promise.coroutine = function (generatorFunction, options) {
+	    if (typeof generatorFunction !== "function") {
+	        throw new TypeError("generatorFunction must be a function\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	    var yieldHandler = Object(options).yieldHandler;
+	    var PromiseSpawn$ = PromiseSpawn;
+	    var stack = new Error().stack;
+	    return function () {
+	        var generator = generatorFunction.apply(this, arguments);
+	        var spawn = new PromiseSpawn$(undefined, undefined, yieldHandler,
+	                                      stack);
+	        var ret = spawn.promise();
+	        spawn._generator = generator;
+	        spawn._promiseFulfilled(undefined);
+	        return ret;
+	    };
+	};
+
+	Promise.coroutine.addYieldHandler = function(fn) {
+	    if (typeof fn !== "function") {
+	        throw new TypeError("expecting a function but got " + util.classString(fn));
+	    }
+	    yieldHandlers.push(fn);
+	};
+
+	Promise.spawn = function (generatorFunction) {
+	    debug.deprecated("Promise.spawn()", "Promise.coroutine()");
+	    if (typeof generatorFunction !== "function") {
+	        return apiRejection("generatorFunction must be a function\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	    var spawn = new PromiseSpawn(generatorFunction, this);
+	    var ret = spawn.promise();
+	    spawn._run(Promise.spawn);
+	    return ret;
+	};
+	};
+
+	},{"./errors":12,"./util":36}],17:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports =
+	function(Promise, PromiseArray, tryConvertToPromise, INTERNAL, async,
+	         getDomain) {
+	var util = _dereq_("./util");
+	var canEvaluate = util.canEvaluate;
+	var tryCatch = util.tryCatch;
+	var errorObj = util.errorObj;
+	var reject;
+
+	if (false) {
+	if (canEvaluate) {
+	    var thenCallback = function(i) {
+	        return new Function("value", "holder", "                             \n\
+	            'use strict';                                                    \n\
+	            holder.pIndex = value;                                           \n\
+	            holder.checkFulfillment(this);                                   \n\
+	            ".replace(/Index/g, i));
+	    };
+
+	    var promiseSetter = function(i) {
+	        return new Function("promise", "holder", "                           \n\
+	            'use strict';                                                    \n\
+	            holder.pIndex = promise;                                         \n\
+	            ".replace(/Index/g, i));
+	    };
+
+	    var generateHolderClass = function(total) {
+	        var props = new Array(total);
+	        for (var i = 0; i < props.length; ++i) {
+	            props[i] = "this.p" + (i+1);
+	        }
+	        var assignment = props.join(" = ") + " = null;";
+	        var cancellationCode= "var promise;\n" + props.map(function(prop) {
+	            return "                                                         \n\
+	                promise = " + prop + ";                                      \n\
+	                if (promise instanceof Promise) {                            \n\
+	                    promise.cancel();                                        \n\
+	                }                                                            \n\
+	            ";
+	        }).join("\n");
+	        var passedArguments = props.join(", ");
+	        var name = "Holder$" + total;
+
+
+	        var code = "return function(tryCatch, errorObj, Promise, async) {    \n\
+	            'use strict';                                                    \n\
+	            function [TheName](fn) {                                         \n\
+	                [TheProperties]                                              \n\
+	                this.fn = fn;                                                \n\
+	                this.asyncNeeded = true;                                     \n\
+	                this.now = 0;                                                \n\
+	            }                                                                \n\
+	                                                                             \n\
+	            [TheName].prototype._callFunction = function(promise) {          \n\
+	                promise._pushContext();                                      \n\
+	                var ret = tryCatch(this.fn)([ThePassedArguments]);           \n\
+	                promise._popContext();                                       \n\
+	                if (ret === errorObj) {                                      \n\
+	                    promise._rejectCallback(ret.e, false);                   \n\
+	                } else {                                                     \n\
+	                    promise._resolveCallback(ret);                           \n\
+	                }                                                            \n\
+	            };                                                               \n\
+	                                                                             \n\
+	            [TheName].prototype.checkFulfillment = function(promise) {       \n\
+	                var now = ++this.now;                                        \n\
+	                if (now === [TheTotal]) {                                    \n\
+	                    if (this.asyncNeeded) {                                  \n\
+	                        async.invoke(this._callFunction, this, promise);     \n\
+	                    } else {                                                 \n\
+	                        this._callFunction(promise);                         \n\
+	                    }                                                        \n\
+	                                                                             \n\
+	                }                                                            \n\
+	            };                                                               \n\
+	                                                                             \n\
+	            [TheName].prototype._resultCancelled = function() {              \n\
+	                [CancellationCode]                                           \n\
+	            };                                                               \n\
+	                                                                             \n\
+	            return [TheName];                                                \n\
+	        }(tryCatch, errorObj, Promise, async);                               \n\
+	        ";
+
+	        code = code.replace(/\[TheName\]/g, name)
+	            .replace(/\[TheTotal\]/g, total)
+	            .replace(/\[ThePassedArguments\]/g, passedArguments)
+	            .replace(/\[TheProperties\]/g, assignment)
+	            .replace(/\[CancellationCode\]/g, cancellationCode);
+
+	        return new Function("tryCatch", "errorObj", "Promise", "async", code)
+	                           (tryCatch, errorObj, Promise, async);
+	    };
+
+	    var holderClasses = [];
+	    var thenCallbacks = [];
+	    var promiseSetters = [];
+
+	    for (var i = 0; i < 8; ++i) {
+	        holderClasses.push(generateHolderClass(i + 1));
+	        thenCallbacks.push(thenCallback(i + 1));
+	        promiseSetters.push(promiseSetter(i + 1));
+	    }
+
+	    reject = function (reason) {
+	        this._reject(reason);
+	    };
+	}}
+
+	Promise.join = function () {
+	    var last = arguments.length - 1;
+	    var fn;
+	    if (last > 0 && typeof arguments[last] === "function") {
+	        fn = arguments[last];
+	        if (false) {
+	            if (last <= 8 && canEvaluate) {
+	                var ret = new Promise(INTERNAL);
+	                ret._captureStackTrace();
+	                var HolderClass = holderClasses[last - 1];
+	                var holder = new HolderClass(fn);
+	                var callbacks = thenCallbacks;
+
+	                for (var i = 0; i < last; ++i) {
+	                    var maybePromise = tryConvertToPromise(arguments[i], ret);
+	                    if (maybePromise instanceof Promise) {
+	                        maybePromise = maybePromise._target();
+	                        var bitField = maybePromise._bitField;
+	                        ;
+	                        if (((bitField & 50397184) === 0)) {
+	                            maybePromise._then(callbacks[i], reject,
+	                                               undefined, ret, holder);
+	                            promiseSetters[i](maybePromise, holder);
+	                            holder.asyncNeeded = false;
+	                        } else if (((bitField & 33554432) !== 0)) {
+	                            callbacks[i].call(ret,
+	                                              maybePromise._value(), holder);
+	                        } else if (((bitField & 16777216) !== 0)) {
+	                            ret._reject(maybePromise._reason());
+	                        } else {
+	                            ret._cancel();
+	                        }
+	                    } else {
+	                        callbacks[i].call(ret, maybePromise, holder);
+	                    }
+	                }
+
+	                if (!ret._isFateSealed()) {
+	                    if (holder.asyncNeeded) {
+	                        var domain = getDomain();
+	                        if (domain !== null) {
+	                            holder.fn = util.domainBind(domain, holder.fn);
+	                        }
+	                    }
+	                    ret._setAsyncGuaranteed();
+	                    ret._setOnCancel(holder);
+	                }
+	                return ret;
+	            }
+	        }
+	    }
+	    var args = [].slice.call(arguments);;
+	    if (fn) args.pop();
+	    var ret = new PromiseArray(args).promise();
+	    return fn !== undefined ? ret.spread(fn) : ret;
+	};
+
+	};
+
+	},{"./util":36}],18:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise,
+	                          PromiseArray,
+	                          apiRejection,
+	                          tryConvertToPromise,
+	                          INTERNAL,
+	                          debug) {
+	var getDomain = Promise._getDomain;
+	var util = _dereq_("./util");
+	var tryCatch = util.tryCatch;
+	var errorObj = util.errorObj;
+	var async = Promise._async;
+
+	function MappingPromiseArray(promises, fn, limit, _filter) {
+	    this.constructor$(promises);
+	    this._promise._captureStackTrace();
+	    var domain = getDomain();
+	    this._callback = domain === null ? fn : util.domainBind(domain, fn);
+	    this._preservedValues = _filter === INTERNAL
+	        ? new Array(this.length())
+	        : null;
+	    this._limit = limit;
+	    this._inFlight = 0;
+	    this._queue = [];
+	    async.invoke(this._asyncInit, this, undefined);
+	}
+	util.inherits(MappingPromiseArray, PromiseArray);
+
+	MappingPromiseArray.prototype._asyncInit = function() {
+	    this._init$(undefined, -2);
+	};
+
+	MappingPromiseArray.prototype._init = function () {};
+
+	MappingPromiseArray.prototype._promiseFulfilled = function (value, index) {
+	    var values = this._values;
+	    var length = this.length();
+	    var preservedValues = this._preservedValues;
+	    var limit = this._limit;
+
+	    if (index < 0) {
+	        index = (index * -1) - 1;
+	        values[index] = value;
+	        if (limit >= 1) {
+	            this._inFlight--;
+	            this._drainQueue();
+	            if (this._isResolved()) return true;
+	        }
+	    } else {
+	        if (limit >= 1 && this._inFlight >= limit) {
+	            values[index] = value;
+	            this._queue.push(index);
+	            return false;
+	        }
+	        if (preservedValues !== null) preservedValues[index] = value;
+
+	        var promise = this._promise;
+	        var callback = this._callback;
+	        var receiver = promise._boundValue();
+	        promise._pushContext();
+	        var ret = tryCatch(callback).call(receiver, value, index, length);
+	        var promiseCreated = promise._popContext();
+	        debug.checkForgottenReturns(
+	            ret,
+	            promiseCreated,
+	            preservedValues !== null ? "Promise.filter" : "Promise.map",
+	            promise
+	        );
+	        if (ret === errorObj) {
+	            this._reject(ret.e);
+	            return true;
+	        }
+
+	        var maybePromise = tryConvertToPromise(ret, this._promise);
+	        if (maybePromise instanceof Promise) {
+	            maybePromise = maybePromise._target();
+	            var bitField = maybePromise._bitField;
+	            ;
+	            if (((bitField & 50397184) === 0)) {
+	                if (limit >= 1) this._inFlight++;
+	                values[index] = maybePromise;
+	                maybePromise._proxy(this, (index + 1) * -1);
+	                return false;
+	            } else if (((bitField & 33554432) !== 0)) {
+	                ret = maybePromise._value();
+	            } else if (((bitField & 16777216) !== 0)) {
+	                this._reject(maybePromise._reason());
+	                return true;
+	            } else {
+	                this._cancel();
+	                return true;
+	            }
+	        }
+	        values[index] = ret;
+	    }
+	    var totalResolved = ++this._totalResolved;
+	    if (totalResolved >= length) {
+	        if (preservedValues !== null) {
+	            this._filter(values, preservedValues);
+	        } else {
+	            this._resolve(values);
+	        }
+	        return true;
+	    }
+	    return false;
+	};
+
+	MappingPromiseArray.prototype._drainQueue = function () {
+	    var queue = this._queue;
+	    var limit = this._limit;
+	    var values = this._values;
+	    while (queue.length > 0 && this._inFlight < limit) {
+	        if (this._isResolved()) return;
+	        var index = queue.pop();
+	        this._promiseFulfilled(values[index], index);
+	    }
+	};
+
+	MappingPromiseArray.prototype._filter = function (booleans, values) {
+	    var len = values.length;
+	    var ret = new Array(len);
+	    var j = 0;
+	    for (var i = 0; i < len; ++i) {
+	        if (booleans[i]) ret[j++] = values[i];
+	    }
+	    ret.length = j;
+	    this._resolve(ret);
+	};
+
+	MappingPromiseArray.prototype.preservedValues = function () {
+	    return this._preservedValues;
+	};
+
+	function map(promises, fn, options, _filter) {
+	    if (typeof fn !== "function") {
+	        return apiRejection("expecting a function but got " + util.classString(fn));
+	    }
+
+	    var limit = 0;
+	    if (options !== undefined) {
+	        if (typeof options === "object" && options !== null) {
+	            if (typeof options.concurrency !== "number") {
+	                return Promise.reject(
+	                    new TypeError("'concurrency' must be a number but it is " +
+	                                    util.classString(options.concurrency)));
+	            }
+	            limit = options.concurrency;
+	        } else {
+	            return Promise.reject(new TypeError(
+	                            "options argument must be an object but it is " +
+	                             util.classString(options)));
+	        }
+	    }
+	    limit = typeof limit === "number" &&
+	        isFinite(limit) && limit >= 1 ? limit : 0;
+	    return new MappingPromiseArray(promises, fn, limit, _filter).promise();
+	}
+
+	Promise.prototype.map = function (fn, options) {
+	    return map(this, fn, options, null);
+	};
+
+	Promise.map = function (promises, fn, options, _filter) {
+	    return map(promises, fn, options, _filter);
+	};
+
+
+	};
+
+	},{"./util":36}],19:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports =
+	function(Promise, INTERNAL, tryConvertToPromise, apiRejection, debug) {
+	var util = _dereq_("./util");
+	var tryCatch = util.tryCatch;
+
+	Promise.method = function (fn) {
+	    if (typeof fn !== "function") {
+	        throw new Promise.TypeError("expecting a function but got " + util.classString(fn));
+	    }
+	    return function () {
+	        var ret = new Promise(INTERNAL);
+	        ret._captureStackTrace();
+	        ret._pushContext();
+	        var value = tryCatch(fn).apply(this, arguments);
+	        var promiseCreated = ret._popContext();
+	        debug.checkForgottenReturns(
+	            value, promiseCreated, "Promise.method", ret);
+	        ret._resolveFromSyncValue(value);
+	        return ret;
+	    };
+	};
+
+	Promise.attempt = Promise["try"] = function (fn) {
+	    if (typeof fn !== "function") {
+	        return apiRejection("expecting a function but got " + util.classString(fn));
+	    }
+	    var ret = new Promise(INTERNAL);
+	    ret._captureStackTrace();
+	    ret._pushContext();
+	    var value;
+	    if (arguments.length > 1) {
+	        debug.deprecated("calling Promise.try with more than 1 argument");
+	        var arg = arguments[1];
+	        var ctx = arguments[2];
+	        value = util.isArray(arg) ? tryCatch(fn).apply(ctx, arg)
+	                                  : tryCatch(fn).call(ctx, arg);
+	    } else {
+	        value = tryCatch(fn)();
+	    }
+	    var promiseCreated = ret._popContext();
+	    debug.checkForgottenReturns(
+	        value, promiseCreated, "Promise.try", ret);
+	    ret._resolveFromSyncValue(value);
+	    return ret;
+	};
+
+	Promise.prototype._resolveFromSyncValue = function (value) {
+	    if (value === util.errorObj) {
+	        this._rejectCallback(value.e, false);
+	    } else {
+	        this._resolveCallback(value, true);
+	    }
+	};
+	};
+
+	},{"./util":36}],20:[function(_dereq_,module,exports){
+	"use strict";
+	var util = _dereq_("./util");
+	var maybeWrapAsError = util.maybeWrapAsError;
+	var errors = _dereq_("./errors");
+	var OperationalError = errors.OperationalError;
+	var es5 = _dereq_("./es5");
+
+	function isUntypedError(obj) {
+	    return obj instanceof Error &&
+	        es5.getPrototypeOf(obj) === Error.prototype;
+	}
+
+	var rErrorKey = /^(?:name|message|stack|cause)$/;
+	function wrapAsOperationalError(obj) {
+	    var ret;
+	    if (isUntypedError(obj)) {
+	        ret = new OperationalError(obj);
+	        ret.name = obj.name;
+	        ret.message = obj.message;
+	        ret.stack = obj.stack;
+	        var keys = es5.keys(obj);
+	        for (var i = 0; i < keys.length; ++i) {
+	            var key = keys[i];
+	            if (!rErrorKey.test(key)) {
+	                ret[key] = obj[key];
+	            }
+	        }
+	        return ret;
+	    }
+	    util.markAsOriginatingFromRejection(obj);
+	    return obj;
+	}
+
+	function nodebackForPromise(promise, multiArgs) {
+	    return function(err, value) {
+	        if (promise === null) return;
+	        if (err) {
+	            var wrapped = wrapAsOperationalError(maybeWrapAsError(err));
+	            promise._attachExtraTrace(wrapped);
+	            promise._reject(wrapped);
+	        } else if (!multiArgs) {
+	            promise._fulfill(value);
+	        } else {
+	            var args = [].slice.call(arguments, 1);;
+	            promise._fulfill(args);
+	        }
+	        promise = null;
+	    };
+	}
+
+	module.exports = nodebackForPromise;
+
+	},{"./errors":12,"./es5":13,"./util":36}],21:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise) {
+	var util = _dereq_("./util");
+	var async = Promise._async;
+	var tryCatch = util.tryCatch;
+	var errorObj = util.errorObj;
+
+	function spreadAdapter(val, nodeback) {
+	    var promise = this;
+	    if (!util.isArray(val)) return successAdapter.call(promise, val, nodeback);
+	    var ret =
+	        tryCatch(nodeback).apply(promise._boundValue(), [null].concat(val));
+	    if (ret === errorObj) {
+	        async.throwLater(ret.e);
+	    }
+	}
+
+	function successAdapter(val, nodeback) {
+	    var promise = this;
+	    var receiver = promise._boundValue();
+	    var ret = val === undefined
+	        ? tryCatch(nodeback).call(receiver, null)
+	        : tryCatch(nodeback).call(receiver, null, val);
+	    if (ret === errorObj) {
+	        async.throwLater(ret.e);
+	    }
+	}
+	function errorAdapter(reason, nodeback) {
+	    var promise = this;
+	    if (!reason) {
+	        var newReason = new Error(reason + "");
+	        newReason.cause = reason;
+	        reason = newReason;
+	    }
+	    var ret = tryCatch(nodeback).call(promise._boundValue(), reason);
+	    if (ret === errorObj) {
+	        async.throwLater(ret.e);
+	    }
+	}
+
+	Promise.prototype.asCallback = Promise.prototype.nodeify = function (nodeback,
+	                                                                     options) {
+	    if (typeof nodeback == "function") {
+	        var adapter = successAdapter;
+	        if (options !== undefined && Object(options).spread) {
+	            adapter = spreadAdapter;
+	        }
+	        this._then(
+	            adapter,
+	            errorAdapter,
+	            undefined,
+	            this,
+	            nodeback
+	        );
+	    }
+	    return this;
+	};
+	};
+
+	},{"./util":36}],22:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function() {
+	var makeSelfResolutionError = function () {
+	    return new TypeError("circular promise resolution chain\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	};
+	var reflectHandler = function() {
+	    return new Promise.PromiseInspection(this._target());
+	};
+	var apiRejection = function(msg) {
+	    return Promise.reject(new TypeError(msg));
+	};
+	function Proxyable() {}
+	var UNDEFINED_BINDING = {};
+	var util = _dereq_("./util");
+
+	var getDomain;
+	if (util.isNode) {
+	    getDomain = function() {
+	        var ret = process.domain;
+	        if (ret === undefined) ret = null;
+	        return ret;
+	    };
+	} else {
+	    getDomain = function() {
+	        return null;
+	    };
+	}
+	util.notEnumerableProp(Promise, "_getDomain", getDomain);
+
+	var es5 = _dereq_("./es5");
+	var Async = _dereq_("./async");
+	var async = new Async();
+	es5.defineProperty(Promise, "_async", {value: async});
+	var errors = _dereq_("./errors");
+	var TypeError = Promise.TypeError = errors.TypeError;
+	Promise.RangeError = errors.RangeError;
+	var CancellationError = Promise.CancellationError = errors.CancellationError;
+	Promise.TimeoutError = errors.TimeoutError;
+	Promise.OperationalError = errors.OperationalError;
+	Promise.RejectionError = errors.OperationalError;
+	Promise.AggregateError = errors.AggregateError;
+	var INTERNAL = function(){};
+	var APPLY = {};
+	var NEXT_FILTER = {};
+	var tryConvertToPromise = _dereq_("./thenables")(Promise, INTERNAL);
+	var PromiseArray =
+	    _dereq_("./promise_array")(Promise, INTERNAL,
+	                               tryConvertToPromise, apiRejection, Proxyable);
+	var Context = _dereq_("./context")(Promise);
+	 /*jshint unused:false*/
+	var createContext = Context.create;
+	var debug = _dereq_("./debuggability")(Promise, Context);
+	var CapturedTrace = debug.CapturedTrace;
+	var PassThroughHandlerContext =
+	    _dereq_("./finally")(Promise, tryConvertToPromise);
+	var catchFilter = _dereq_("./catch_filter")(NEXT_FILTER);
+	var nodebackForPromise = _dereq_("./nodeback");
+	var errorObj = util.errorObj;
+	var tryCatch = util.tryCatch;
+	function check(self, executor) {
+	    if (typeof executor !== "function") {
+	        throw new TypeError("expecting a function but got " + util.classString(executor));
+	    }
+	    if (self.constructor !== Promise) {
+	        throw new TypeError("the promise constructor cannot be invoked directly\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	}
+
+	function Promise(executor) {
+	    this._bitField = 0;
+	    this._fulfillmentHandler0 = undefined;
+	    this._rejectionHandler0 = undefined;
+	    this._promise0 = undefined;
+	    this._receiver0 = undefined;
+	    if (executor !== INTERNAL) {
+	        check(this, executor);
+	        this._resolveFromExecutor(executor);
+	    }
+	    this._promiseCreated();
+	    this._fireEvent("promiseCreated", this);
+	}
+
+	Promise.prototype.toString = function () {
+	    return "[object Promise]";
+	};
+
+	Promise.prototype.caught = Promise.prototype["catch"] = function (fn) {
+	    var len = arguments.length;
+	    if (len > 1) {
+	        var catchInstances = new Array(len - 1),
+	            j = 0, i;
+	        for (i = 0; i < len - 1; ++i) {
+	            var item = arguments[i];
+	            if (util.isObject(item)) {
+	                catchInstances[j++] = item;
+	            } else {
+	                return apiRejection("expecting an object but got " +
+	                    "A catch statement predicate " + util.classString(item));
+	            }
+	        }
+	        catchInstances.length = j;
+	        fn = arguments[i];
+	        return this.then(undefined, catchFilter(catchInstances, fn, this));
+	    }
+	    return this.then(undefined, fn);
+	};
+
+	Promise.prototype.reflect = function () {
+	    return this._then(reflectHandler,
+	        reflectHandler, undefined, this, undefined);
+	};
+
+	Promise.prototype.then = function (didFulfill, didReject) {
+	    if (debug.warnings() && arguments.length > 0 &&
+	        typeof didFulfill !== "function" &&
+	        typeof didReject !== "function") {
+	        var msg = ".then() only accepts functions but was passed: " +
+	                util.classString(didFulfill);
+	        if (arguments.length > 1) {
+	            msg += ", " + util.classString(didReject);
+	        }
+	        this._warn(msg);
+	    }
+	    return this._then(didFulfill, didReject, undefined, undefined, undefined);
+	};
+
+	Promise.prototype.done = function (didFulfill, didReject) {
+	    var promise =
+	        this._then(didFulfill, didReject, undefined, undefined, undefined);
+	    promise._setIsFinal();
+	};
+
+	Promise.prototype.spread = function (fn) {
+	    if (typeof fn !== "function") {
+	        return apiRejection("expecting a function but got " + util.classString(fn));
+	    }
+	    return this.all()._then(fn, undefined, undefined, APPLY, undefined);
+	};
+
+	Promise.prototype.toJSON = function () {
+	    var ret = {
+	        isFulfilled: false,
+	        isRejected: false,
+	        fulfillmentValue: undefined,
+	        rejectionReason: undefined
+	    };
+	    if (this.isFulfilled()) {
+	        ret.fulfillmentValue = this.value();
+	        ret.isFulfilled = true;
+	    } else if (this.isRejected()) {
+	        ret.rejectionReason = this.reason();
+	        ret.isRejected = true;
+	    }
+	    return ret;
+	};
+
+	Promise.prototype.all = function () {
+	    if (arguments.length > 0) {
+	        this._warn(".all() was passed arguments but it does not take any");
+	    }
+	    return new PromiseArray(this).promise();
+	};
+
+	Promise.prototype.error = function (fn) {
+	    return this.caught(util.originatesFromRejection, fn);
+	};
+
+	Promise.getNewLibraryCopy = module.exports;
+
+	Promise.is = function (val) {
+	    return val instanceof Promise;
+	};
+
+	Promise.fromNode = Promise.fromCallback = function(fn) {
+	    var ret = new Promise(INTERNAL);
+	    ret._captureStackTrace();
+	    var multiArgs = arguments.length > 1 ? !!Object(arguments[1]).multiArgs
+	                                         : false;
+	    var result = tryCatch(fn)(nodebackForPromise(ret, multiArgs));
+	    if (result === errorObj) {
+	        ret._rejectCallback(result.e, true);
+	    }
+	    if (!ret._isFateSealed()) ret._setAsyncGuaranteed();
+	    return ret;
+	};
+
+	Promise.all = function (promises) {
+	    return new PromiseArray(promises).promise();
+	};
+
+	Promise.cast = function (obj) {
+	    var ret = tryConvertToPromise(obj);
+	    if (!(ret instanceof Promise)) {
+	        ret = new Promise(INTERNAL);
+	        ret._captureStackTrace();
+	        ret._setFulfilled();
+	        ret._rejectionHandler0 = obj;
+	    }
+	    return ret;
+	};
+
+	Promise.resolve = Promise.fulfilled = Promise.cast;
+
+	Promise.reject = Promise.rejected = function (reason) {
+	    var ret = new Promise(INTERNAL);
+	    ret._captureStackTrace();
+	    ret._rejectCallback(reason, true);
+	    return ret;
+	};
+
+	Promise.setScheduler = function(fn) {
+	    if (typeof fn !== "function") {
+	        throw new TypeError("expecting a function but got " + util.classString(fn));
+	    }
+	    return async.setScheduler(fn);
+	};
+
+	Promise.prototype._then = function (
+	    didFulfill,
+	    didReject,
+	    _,    receiver,
+	    internalData
+	) {
+	    var haveInternalData = internalData !== undefined;
+	    var promise = haveInternalData ? internalData : new Promise(INTERNAL);
+	    var target = this._target();
+	    var bitField = target._bitField;
+
+	    if (!haveInternalData) {
+	        promise._propagateFrom(this, 3);
+	        promise._captureStackTrace();
+	        if (receiver === undefined &&
+	            ((this._bitField & 2097152) !== 0)) {
+	            if (!((bitField & 50397184) === 0)) {
+	                receiver = this._boundValue();
+	            } else {
+	                receiver = target === this ? undefined : this._boundTo;
+	            }
+	        }
+	        this._fireEvent("promiseChained", this, promise);
+	    }
+
+	    var domain = getDomain();
+	    if (!((bitField & 50397184) === 0)) {
+	        var handler, value, settler = target._settlePromiseCtx;
+	        if (((bitField & 33554432) !== 0)) {
+	            value = target._rejectionHandler0;
+	            handler = didFulfill;
+	        } else if (((bitField & 16777216) !== 0)) {
+	            value = target._fulfillmentHandler0;
+	            handler = didReject;
+	            target._unsetRejectionIsUnhandled();
+	        } else {
+	            settler = target._settlePromiseLateCancellationObserver;
+	            value = new CancellationError("late cancellation observer");
+	            target._attachExtraTrace(value);
+	            handler = didReject;
+	        }
+
+	        async.invoke(settler, target, {
+	            handler: domain === null ? handler
+	                : (typeof handler === "function" &&
+	                    util.domainBind(domain, handler)),
+	            promise: promise,
+	            receiver: receiver,
+	            value: value
+	        });
+	    } else {
+	        target._addCallbacks(didFulfill, didReject, promise, receiver, domain);
+	    }
+
+	    return promise;
+	};
+
+	Promise.prototype._length = function () {
+	    return this._bitField & 65535;
+	};
+
+	Promise.prototype._isFateSealed = function () {
+	    return (this._bitField & 117506048) !== 0;
+	};
+
+	Promise.prototype._isFollowing = function () {
+	    return (this._bitField & 67108864) === 67108864;
+	};
+
+	Promise.prototype._setLength = function (len) {
+	    this._bitField = (this._bitField & -65536) |
+	        (len & 65535);
+	};
+
+	Promise.prototype._setFulfilled = function () {
+	    this._bitField = this._bitField | 33554432;
+	    this._fireEvent("promiseFulfilled", this);
+	};
+
+	Promise.prototype._setRejected = function () {
+	    this._bitField = this._bitField | 16777216;
+	    this._fireEvent("promiseRejected", this);
+	};
+
+	Promise.prototype._setFollowing = function () {
+	    this._bitField = this._bitField | 67108864;
+	    this._fireEvent("promiseResolved", this);
+	};
+
+	Promise.prototype._setIsFinal = function () {
+	    this._bitField = this._bitField | 4194304;
+	};
+
+	Promise.prototype._isFinal = function () {
+	    return (this._bitField & 4194304) > 0;
+	};
+
+	Promise.prototype._unsetCancelled = function() {
+	    this._bitField = this._bitField & (~65536);
+	};
+
+	Promise.prototype._setCancelled = function() {
+	    this._bitField = this._bitField | 65536;
+	    this._fireEvent("promiseCancelled", this);
+	};
+
+	Promise.prototype._setWillBeCancelled = function() {
+	    this._bitField = this._bitField | 8388608;
+	};
+
+	Promise.prototype._setAsyncGuaranteed = function() {
+	    if (async.hasCustomScheduler()) return;
+	    this._bitField = this._bitField | 134217728;
+	};
+
+	Promise.prototype._receiverAt = function (index) {
+	    var ret = index === 0 ? this._receiver0 : this[
+	            index * 4 - 4 + 3];
+	    if (ret === UNDEFINED_BINDING) {
+	        return undefined;
+	    } else if (ret === undefined && this._isBound()) {
+	        return this._boundValue();
+	    }
+	    return ret;
+	};
+
+	Promise.prototype._promiseAt = function (index) {
+	    return this[
+	            index * 4 - 4 + 2];
+	};
+
+	Promise.prototype._fulfillmentHandlerAt = function (index) {
+	    return this[
+	            index * 4 - 4 + 0];
+	};
+
+	Promise.prototype._rejectionHandlerAt = function (index) {
+	    return this[
+	            index * 4 - 4 + 1];
+	};
+
+	Promise.prototype._boundValue = function() {};
+
+	Promise.prototype._migrateCallback0 = function (follower) {
+	    var bitField = follower._bitField;
+	    var fulfill = follower._fulfillmentHandler0;
+	    var reject = follower._rejectionHandler0;
+	    var promise = follower._promise0;
+	    var receiver = follower._receiverAt(0);
+	    if (receiver === undefined) receiver = UNDEFINED_BINDING;
+	    this._addCallbacks(fulfill, reject, promise, receiver, null);
+	};
+
+	Promise.prototype._migrateCallbackAt = function (follower, index) {
+	    var fulfill = follower._fulfillmentHandlerAt(index);
+	    var reject = follower._rejectionHandlerAt(index);
+	    var promise = follower._promiseAt(index);
+	    var receiver = follower._receiverAt(index);
+	    if (receiver === undefined) receiver = UNDEFINED_BINDING;
+	    this._addCallbacks(fulfill, reject, promise, receiver, null);
+	};
+
+	Promise.prototype._addCallbacks = function (
+	    fulfill,
+	    reject,
+	    promise,
+	    receiver,
+	    domain
+	) {
+	    var index = this._length();
+
+	    if (index >= 65535 - 4) {
+	        index = 0;
+	        this._setLength(0);
+	    }
+
+	    if (index === 0) {
+	        this._promise0 = promise;
+	        this._receiver0 = receiver;
+	        if (typeof fulfill === "function") {
+	            this._fulfillmentHandler0 =
+	                domain === null ? fulfill : util.domainBind(domain, fulfill);
+	        }
+	        if (typeof reject === "function") {
+	            this._rejectionHandler0 =
+	                domain === null ? reject : util.domainBind(domain, reject);
+	        }
+	    } else {
+	        var base = index * 4 - 4;
+	        this[base + 2] = promise;
+	        this[base + 3] = receiver;
+	        if (typeof fulfill === "function") {
+	            this[base + 0] =
+	                domain === null ? fulfill : util.domainBind(domain, fulfill);
+	        }
+	        if (typeof reject === "function") {
+	            this[base + 1] =
+	                domain === null ? reject : util.domainBind(domain, reject);
+	        }
+	    }
+	    this._setLength(index + 1);
+	    return index;
+	};
+
+	Promise.prototype._proxy = function (proxyable, arg) {
+	    this._addCallbacks(undefined, undefined, arg, proxyable, null);
+	};
+
+	Promise.prototype._resolveCallback = function(value, shouldBind) {
+	    if (((this._bitField & 117506048) !== 0)) return;
+	    if (value === this)
+	        return this._rejectCallback(makeSelfResolutionError(), false);
+	    var maybePromise = tryConvertToPromise(value, this);
+	    if (!(maybePromise instanceof Promise)) return this._fulfill(value);
+
+	    if (shouldBind) this._propagateFrom(maybePromise, 2);
+
+	    var promise = maybePromise._target();
+
+	    if (promise === this) {
+	        this._reject(makeSelfResolutionError());
+	        return;
+	    }
+
+	    var bitField = promise._bitField;
+	    if (((bitField & 50397184) === 0)) {
+	        var len = this._length();
+	        if (len > 0) promise._migrateCallback0(this);
+	        for (var i = 1; i < len; ++i) {
+	            promise._migrateCallbackAt(this, i);
+	        }
+	        this._setFollowing();
+	        this._setLength(0);
+	        this._setFollowee(promise);
+	    } else if (((bitField & 33554432) !== 0)) {
+	        this._fulfill(promise._value());
+	    } else if (((bitField & 16777216) !== 0)) {
+	        this._reject(promise._reason());
+	    } else {
+	        var reason = new CancellationError("late cancellation observer");
+	        promise._attachExtraTrace(reason);
+	        this._reject(reason);
+	    }
+	};
+
+	Promise.prototype._rejectCallback =
+	function(reason, synchronous, ignoreNonErrorWarnings) {
+	    var trace = util.ensureErrorObject(reason);
+	    var hasStack = trace === reason;
+	    if (!hasStack && !ignoreNonErrorWarnings && debug.warnings()) {
+	        var message = "a promise was rejected with a non-error: " +
+	            util.classString(reason);
+	        this._warn(message, true);
+	    }
+	    this._attachExtraTrace(trace, synchronous ? hasStack : false);
+	    this._reject(reason);
+	};
+
+	Promise.prototype._resolveFromExecutor = function (executor) {
+	    var promise = this;
+	    this._captureStackTrace();
+	    this._pushContext();
+	    var synchronous = true;
+	    var r = this._execute(executor, function(value) {
+	        promise._resolveCallback(value);
+	    }, function (reason) {
+	        promise._rejectCallback(reason, synchronous);
+	    });
+	    synchronous = false;
+	    this._popContext();
+
+	    if (r !== undefined) {
+	        promise._rejectCallback(r, true);
+	    }
+	};
+
+	Promise.prototype._settlePromiseFromHandler = function (
+	    handler, receiver, value, promise
+	) {
+	    var bitField = promise._bitField;
+	    if (((bitField & 65536) !== 0)) return;
+	    promise._pushContext();
+	    var x;
+	    if (receiver === APPLY) {
+	        if (!value || typeof value.length !== "number") {
+	            x = errorObj;
+	            x.e = new TypeError("cannot .spread() a non-array: " +
+	                                    util.classString(value));
+	        } else {
+	            x = tryCatch(handler).apply(this._boundValue(), value);
+	        }
+	    } else {
+	        x = tryCatch(handler).call(receiver, value);
+	    }
+	    var promiseCreated = promise._popContext();
+	    bitField = promise._bitField;
+	    if (((bitField & 65536) !== 0)) return;
+
+	    if (x === NEXT_FILTER) {
+	        promise._reject(value);
+	    } else if (x === errorObj) {
+	        promise._rejectCallback(x.e, false);
+	    } else {
+	        debug.checkForgottenReturns(x, promiseCreated, "",  promise, this);
+	        promise._resolveCallback(x);
+	    }
+	};
+
+	Promise.prototype._target = function() {
+	    var ret = this;
+	    while (ret._isFollowing()) ret = ret._followee();
+	    return ret;
+	};
+
+	Promise.prototype._followee = function() {
+	    return this._rejectionHandler0;
+	};
+
+	Promise.prototype._setFollowee = function(promise) {
+	    this._rejectionHandler0 = promise;
+	};
+
+	Promise.prototype._settlePromise = function(promise, handler, receiver, value) {
+	    var isPromise = promise instanceof Promise;
+	    var bitField = this._bitField;
+	    var asyncGuaranteed = ((bitField & 134217728) !== 0);
+	    if (((bitField & 65536) !== 0)) {
+	        if (isPromise) promise._invokeInternalOnCancel();
+
+	        if (receiver instanceof PassThroughHandlerContext &&
+	            receiver.isFinallyHandler()) {
+	            receiver.cancelPromise = promise;
+	            if (tryCatch(handler).call(receiver, value) === errorObj) {
+	                promise._reject(errorObj.e);
+	            }
+	        } else if (handler === reflectHandler) {
+	            promise._fulfill(reflectHandler.call(receiver));
+	        } else if (receiver instanceof Proxyable) {
+	            receiver._promiseCancelled(promise);
+	        } else if (isPromise || promise instanceof PromiseArray) {
+	            promise._cancel();
+	        } else {
+	            receiver.cancel();
+	        }
+	    } else if (typeof handler === "function") {
+	        if (!isPromise) {
+	            handler.call(receiver, value, promise);
+	        } else {
+	            if (asyncGuaranteed) promise._setAsyncGuaranteed();
+	            this._settlePromiseFromHandler(handler, receiver, value, promise);
+	        }
+	    } else if (receiver instanceof Proxyable) {
+	        if (!receiver._isResolved()) {
+	            if (((bitField & 33554432) !== 0)) {
+	                receiver._promiseFulfilled(value, promise);
+	            } else {
+	                receiver._promiseRejected(value, promise);
+	            }
+	        }
+	    } else if (isPromise) {
+	        if (asyncGuaranteed) promise._setAsyncGuaranteed();
+	        if (((bitField & 33554432) !== 0)) {
+	            promise._fulfill(value);
+	        } else {
+	            promise._reject(value);
+	        }
+	    }
+	};
+
+	Promise.prototype._settlePromiseLateCancellationObserver = function(ctx) {
+	    var handler = ctx.handler;
+	    var promise = ctx.promise;
+	    var receiver = ctx.receiver;
+	    var value = ctx.value;
+	    if (typeof handler === "function") {
+	        if (!(promise instanceof Promise)) {
+	            handler.call(receiver, value, promise);
+	        } else {
+	            this._settlePromiseFromHandler(handler, receiver, value, promise);
+	        }
+	    } else if (promise instanceof Promise) {
+	        promise._reject(value);
+	    }
+	};
+
+	Promise.prototype._settlePromiseCtx = function(ctx) {
+	    this._settlePromise(ctx.promise, ctx.handler, ctx.receiver, ctx.value);
+	};
+
+	Promise.prototype._settlePromise0 = function(handler, value, bitField) {
+	    var promise = this._promise0;
+	    var receiver = this._receiverAt(0);
+	    this._promise0 = undefined;
+	    this._receiver0 = undefined;
+	    this._settlePromise(promise, handler, receiver, value);
+	};
+
+	Promise.prototype._clearCallbackDataAtIndex = function(index) {
+	    var base = index * 4 - 4;
+	    this[base + 2] =
+	    this[base + 3] =
+	    this[base + 0] =
+	    this[base + 1] = undefined;
+	};
+
+	Promise.prototype._fulfill = function (value) {
+	    var bitField = this._bitField;
+	    if (((bitField & 117506048) >>> 16)) return;
+	    if (value === this) {
+	        var err = makeSelfResolutionError();
+	        this._attachExtraTrace(err);
+	        return this._reject(err);
+	    }
+	    this._setFulfilled();
+	    this._rejectionHandler0 = value;
+
+	    if ((bitField & 65535) > 0) {
+	        if (((bitField & 134217728) !== 0)) {
+	            this._settlePromises();
+	        } else {
+	            async.settlePromises(this);
+	        }
+	    }
+	};
+
+	Promise.prototype._reject = function (reason) {
+	    var bitField = this._bitField;
+	    if (((bitField & 117506048) >>> 16)) return;
+	    this._setRejected();
+	    this._fulfillmentHandler0 = reason;
+
+	    if (this._isFinal()) {
+	        return async.fatalError(reason, util.isNode);
+	    }
+
+	    if ((bitField & 65535) > 0) {
+	        async.settlePromises(this);
+	    } else {
+	        this._ensurePossibleRejectionHandled();
+	    }
+	};
+
+	Promise.prototype._fulfillPromises = function (len, value) {
+	    for (var i = 1; i < len; i++) {
+	        var handler = this._fulfillmentHandlerAt(i);
+	        var promise = this._promiseAt(i);
+	        var receiver = this._receiverAt(i);
+	        this._clearCallbackDataAtIndex(i);
+	        this._settlePromise(promise, handler, receiver, value);
+	    }
+	};
+
+	Promise.prototype._rejectPromises = function (len, reason) {
+	    for (var i = 1; i < len; i++) {
+	        var handler = this._rejectionHandlerAt(i);
+	        var promise = this._promiseAt(i);
+	        var receiver = this._receiverAt(i);
+	        this._clearCallbackDataAtIndex(i);
+	        this._settlePromise(promise, handler, receiver, reason);
+	    }
+	};
+
+	Promise.prototype._settlePromises = function () {
+	    var bitField = this._bitField;
+	    var len = (bitField & 65535);
+
+	    if (len > 0) {
+	        if (((bitField & 16842752) !== 0)) {
+	            var reason = this._fulfillmentHandler0;
+	            this._settlePromise0(this._rejectionHandler0, reason, bitField);
+	            this._rejectPromises(len, reason);
+	        } else {
+	            var value = this._rejectionHandler0;
+	            this._settlePromise0(this._fulfillmentHandler0, value, bitField);
+	            this._fulfillPromises(len, value);
+	        }
+	        this._setLength(0);
+	    }
+	    this._clearCancellationData();
+	};
+
+	Promise.prototype._settledValue = function() {
+	    var bitField = this._bitField;
+	    if (((bitField & 33554432) !== 0)) {
+	        return this._rejectionHandler0;
+	    } else if (((bitField & 16777216) !== 0)) {
+	        return this._fulfillmentHandler0;
+	    }
+	};
+
+	function deferResolve(v) {this.promise._resolveCallback(v);}
+	function deferReject(v) {this.promise._rejectCallback(v, false);}
+
+	Promise.defer = Promise.pending = function() {
+	    debug.deprecated("Promise.defer", "new Promise");
+	    var promise = new Promise(INTERNAL);
+	    return {
+	        promise: promise,
+	        resolve: deferResolve,
+	        reject: deferReject
+	    };
+	};
+
+	util.notEnumerableProp(Promise,
+	                       "_makeSelfResolutionError",
+	                       makeSelfResolutionError);
+
+	_dereq_("./method")(Promise, INTERNAL, tryConvertToPromise, apiRejection,
+	    debug);
+	_dereq_("./bind")(Promise, INTERNAL, tryConvertToPromise, debug);
+	_dereq_("./cancel")(Promise, PromiseArray, apiRejection, debug);
+	_dereq_("./direct_resolve")(Promise);
+	_dereq_("./synchronous_inspection")(Promise);
+	_dereq_("./join")(
+	    Promise, PromiseArray, tryConvertToPromise, INTERNAL, async, getDomain);
+	Promise.Promise = Promise;
+	Promise.version = "3.4.6";
+	_dereq_('./map.js')(Promise, PromiseArray, apiRejection, tryConvertToPromise, INTERNAL, debug);
+	_dereq_('./call_get.js')(Promise);
+	_dereq_('./using.js')(Promise, apiRejection, tryConvertToPromise, createContext, INTERNAL, debug);
+	_dereq_('./timers.js')(Promise, INTERNAL, debug);
+	_dereq_('./generators.js')(Promise, apiRejection, INTERNAL, tryConvertToPromise, Proxyable, debug);
+	_dereq_('./nodeify.js')(Promise);
+	_dereq_('./promisify.js')(Promise, INTERNAL);
+	_dereq_('./props.js')(Promise, PromiseArray, tryConvertToPromise, apiRejection);
+	_dereq_('./race.js')(Promise, INTERNAL, tryConvertToPromise, apiRejection);
+	_dereq_('./reduce.js')(Promise, PromiseArray, apiRejection, tryConvertToPromise, INTERNAL, debug);
+	_dereq_('./settle.js')(Promise, PromiseArray, debug);
+	_dereq_('./some.js')(Promise, PromiseArray, apiRejection);
+	_dereq_('./filter.js')(Promise, INTERNAL);
+	_dereq_('./each.js')(Promise, INTERNAL);
+	_dereq_('./any.js')(Promise);
+	                                                         
+	    util.toFastProperties(Promise);                                          
+	    util.toFastProperties(Promise.prototype);                                
+	    function fillTypes(value) {                                              
+	        var p = new Promise(INTERNAL);                                       
+	        p._fulfillmentHandler0 = value;                                      
+	        p._rejectionHandler0 = value;                                        
+	        p._promise0 = value;                                                 
+	        p._receiver0 = value;                                                
+	    }                                                                        
+	    // Complete slack tracking, opt out of field-type tracking and           
+	    // stabilize map                                                         
+	    fillTypes({a: 1});                                                       
+	    fillTypes({b: 2});                                                       
+	    fillTypes({c: 3});                                                       
+	    fillTypes(1);                                                            
+	    fillTypes(function(){});                                                 
+	    fillTypes(undefined);                                                    
+	    fillTypes(false);                                                        
+	    fillTypes(new Promise(INTERNAL));                                        
+	    debug.setBounds(Async.firstLineError, util.lastLineError);               
+	    return Promise;                                                          
+
+	};
+
+	},{"./any.js":1,"./async":2,"./bind":3,"./call_get.js":5,"./cancel":6,"./catch_filter":7,"./context":8,"./debuggability":9,"./direct_resolve":10,"./each.js":11,"./errors":12,"./es5":13,"./filter.js":14,"./finally":15,"./generators.js":16,"./join":17,"./map.js":18,"./method":19,"./nodeback":20,"./nodeify.js":21,"./promise_array":23,"./promisify.js":24,"./props.js":25,"./race.js":27,"./reduce.js":28,"./settle.js":30,"./some.js":31,"./synchronous_inspection":32,"./thenables":33,"./timers.js":34,"./using.js":35,"./util":36}],23:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, INTERNAL, tryConvertToPromise,
+	    apiRejection, Proxyable) {
+	var util = _dereq_("./util");
+	var isArray = util.isArray;
+
+	function toResolutionValue(val) {
+	    switch(val) {
+	    case -2: return [];
+	    case -3: return {};
+	    }
+	}
+
+	function PromiseArray(values) {
+	    var promise = this._promise = new Promise(INTERNAL);
+	    if (values instanceof Promise) {
+	        promise._propagateFrom(values, 3);
+	    }
+	    promise._setOnCancel(this);
+	    this._values = values;
+	    this._length = 0;
+	    this._totalResolved = 0;
+	    this._init(undefined, -2);
+	}
+	util.inherits(PromiseArray, Proxyable);
+
+	PromiseArray.prototype.length = function () {
+	    return this._length;
+	};
+
+	PromiseArray.prototype.promise = function () {
+	    return this._promise;
+	};
+
+	PromiseArray.prototype._init = function init(_, resolveValueIfEmpty) {
+	    var values = tryConvertToPromise(this._values, this._promise);
+	    if (values instanceof Promise) {
+	        values = values._target();
+	        var bitField = values._bitField;
+	        ;
+	        this._values = values;
+
+	        if (((bitField & 50397184) === 0)) {
+	            this._promise._setAsyncGuaranteed();
+	            return values._then(
+	                init,
+	                this._reject,
+	                undefined,
+	                this,
+	                resolveValueIfEmpty
+	           );
+	        } else if (((bitField & 33554432) !== 0)) {
+	            values = values._value();
+	        } else if (((bitField & 16777216) !== 0)) {
+	            return this._reject(values._reason());
+	        } else {
+	            return this._cancel();
+	        }
+	    }
+	    values = util.asArray(values);
+	    if (values === null) {
+	        var err = apiRejection(
+	            "expecting an array or an iterable object but got " + util.classString(values)).reason();
+	        this._promise._rejectCallback(err, false);
+	        return;
+	    }
+
+	    if (values.length === 0) {
+	        if (resolveValueIfEmpty === -5) {
+	            this._resolveEmptyArray();
+	        }
+	        else {
+	            this._resolve(toResolutionValue(resolveValueIfEmpty));
+	        }
+	        return;
+	    }
+	    this._iterate(values);
+	};
+
+	PromiseArray.prototype._iterate = function(values) {
+	    var len = this.getActualLength(values.length);
+	    this._length = len;
+	    this._values = this.shouldCopyValues() ? new Array(len) : this._values;
+	    var result = this._promise;
+	    var isResolved = false;
+	    var bitField = null;
+	    for (var i = 0; i < len; ++i) {
+	        var maybePromise = tryConvertToPromise(values[i], result);
+
+	        if (maybePromise instanceof Promise) {
+	            maybePromise = maybePromise._target();
+	            bitField = maybePromise._bitField;
+	        } else {
+	            bitField = null;
+	        }
+
+	        if (isResolved) {
+	            if (bitField !== null) {
+	                maybePromise.suppressUnhandledRejections();
+	            }
+	        } else if (bitField !== null) {
+	            if (((bitField & 50397184) === 0)) {
+	                maybePromise._proxy(this, i);
+	                this._values[i] = maybePromise;
+	            } else if (((bitField & 33554432) !== 0)) {
+	                isResolved = this._promiseFulfilled(maybePromise._value(), i);
+	            } else if (((bitField & 16777216) !== 0)) {
+	                isResolved = this._promiseRejected(maybePromise._reason(), i);
+	            } else {
+	                isResolved = this._promiseCancelled(i);
+	            }
+	        } else {
+	            isResolved = this._promiseFulfilled(maybePromise, i);
+	        }
+	    }
+	    if (!isResolved) result._setAsyncGuaranteed();
+	};
+
+	PromiseArray.prototype._isResolved = function () {
+	    return this._values === null;
+	};
+
+	PromiseArray.prototype._resolve = function (value) {
+	    this._values = null;
+	    this._promise._fulfill(value);
+	};
+
+	PromiseArray.prototype._cancel = function() {
+	    if (this._isResolved() || !this._promise._isCancellable()) return;
+	    this._values = null;
+	    this._promise._cancel();
+	};
+
+	PromiseArray.prototype._reject = function (reason) {
+	    this._values = null;
+	    this._promise._rejectCallback(reason, false);
+	};
+
+	PromiseArray.prototype._promiseFulfilled = function (value, index) {
+	    this._values[index] = value;
+	    var totalResolved = ++this._totalResolved;
+	    if (totalResolved >= this._length) {
+	        this._resolve(this._values);
+	        return true;
+	    }
+	    return false;
+	};
+
+	PromiseArray.prototype._promiseCancelled = function() {
+	    this._cancel();
+	    return true;
+	};
+
+	PromiseArray.prototype._promiseRejected = function (reason) {
+	    this._totalResolved++;
+	    this._reject(reason);
+	    return true;
+	};
+
+	PromiseArray.prototype._resultCancelled = function() {
+	    if (this._isResolved()) return;
+	    var values = this._values;
+	    this._cancel();
+	    if (values instanceof Promise) {
+	        values.cancel();
+	    } else {
+	        for (var i = 0; i < values.length; ++i) {
+	            if (values[i] instanceof Promise) {
+	                values[i].cancel();
+	            }
+	        }
+	    }
+	};
+
+	PromiseArray.prototype.shouldCopyValues = function () {
+	    return true;
+	};
+
+	PromiseArray.prototype.getActualLength = function (len) {
+	    return len;
+	};
+
+	return PromiseArray;
+	};
+
+	},{"./util":36}],24:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, INTERNAL) {
+	var THIS = {};
+	var util = _dereq_("./util");
+	var nodebackForPromise = _dereq_("./nodeback");
+	var withAppended = util.withAppended;
+	var maybeWrapAsError = util.maybeWrapAsError;
+	var canEvaluate = util.canEvaluate;
+	var TypeError = _dereq_("./errors").TypeError;
+	var defaultSuffix = "Async";
+	var defaultPromisified = {__isPromisified__: true};
+	var noCopyProps = [
+	    "arity",    "length",
+	    "name",
+	    "arguments",
+	    "caller",
+	    "callee",
+	    "prototype",
+	    "__isPromisified__"
+	];
+	var noCopyPropsPattern = new RegExp("^(?:" + noCopyProps.join("|") + ")$");
+
+	var defaultFilter = function(name) {
+	    return util.isIdentifier(name) &&
+	        name.charAt(0) !== "_" &&
+	        name !== "constructor";
+	};
+
+	function propsFilter(key) {
+	    return !noCopyPropsPattern.test(key);
+	}
+
+	function isPromisified(fn) {
+	    try {
+	        return fn.__isPromisified__ === true;
+	    }
+	    catch (e) {
+	        return false;
+	    }
+	}
+
+	function hasPromisified(obj, key, suffix) {
+	    var val = util.getDataPropertyOrDefault(obj, key + suffix,
+	                                            defaultPromisified);
+	    return val ? isPromisified(val) : false;
+	}
+	function checkValid(ret, suffix, suffixRegexp) {
+	    for (var i = 0; i < ret.length; i += 2) {
+	        var key = ret[i];
+	        if (suffixRegexp.test(key)) {
+	            var keyWithoutAsyncSuffix = key.replace(suffixRegexp, "");
+	            for (var j = 0; j < ret.length; j += 2) {
+	                if (ret[j] === keyWithoutAsyncSuffix) {
+	                    throw new TypeError("Cannot promisify an API that has normal methods with '%s'-suffix\u000a\u000a    See http://goo.gl/MqrFmX\u000a"
+	                        .replace("%s", suffix));
+	                }
+	            }
+	        }
+	    }
+	}
+
+	function promisifiableMethods(obj, suffix, suffixRegexp, filter) {
+	    var keys = util.inheritedDataKeys(obj);
+	    var ret = [];
+	    for (var i = 0; i < keys.length; ++i) {
+	        var key = keys[i];
+	        var value = obj[key];
+	        var passesDefaultFilter = filter === defaultFilter
+	            ? true : defaultFilter(key, value, obj);
+	        if (typeof value === "function" &&
+	            !isPromisified(value) &&
+	            !hasPromisified(obj, key, suffix) &&
+	            filter(key, value, obj, passesDefaultFilter)) {
+	            ret.push(key, value);
+	        }
+	    }
+	    checkValid(ret, suffix, suffixRegexp);
+	    return ret;
+	}
+
+	var escapeIdentRegex = function(str) {
+	    return str.replace(/([$])/, "\\$");
+	};
+
+	var makeNodePromisifiedEval;
+	if (false) {
+	var switchCaseArgumentOrder = function(likelyArgumentCount) {
+	    var ret = [likelyArgumentCount];
+	    var min = Math.max(0, likelyArgumentCount - 1 - 3);
+	    for(var i = likelyArgumentCount - 1; i >= min; --i) {
+	        ret.push(i);
+	    }
+	    for(var i = likelyArgumentCount + 1; i <= 3; ++i) {
+	        ret.push(i);
+	    }
+	    return ret;
+	};
+
+	var argumentSequence = function(argumentCount) {
+	    return util.filledRange(argumentCount, "_arg", "");
+	};
+
+	var parameterDeclaration = function(parameterCount) {
+	    return util.filledRange(
+	        Math.max(parameterCount, 3), "_arg", "");
+	};
+
+	var parameterCount = function(fn) {
+	    if (typeof fn.length === "number") {
+	        return Math.max(Math.min(fn.length, 1023 + 1), 0);
+	    }
+	    return 0;
+	};
+
+	makeNodePromisifiedEval =
+	function(callback, receiver, originalName, fn, _, multiArgs) {
+	    var newParameterCount = Math.max(0, parameterCount(fn) - 1);
+	    var argumentOrder = switchCaseArgumentOrder(newParameterCount);
+	    var shouldProxyThis = typeof callback === "string" || receiver === THIS;
+
+	    function generateCallForArgumentCount(count) {
+	        var args = argumentSequence(count).join(", ");
+	        var comma = count > 0 ? ", " : "";
+	        var ret;
+	        if (shouldProxyThis) {
+	            ret = "ret = callback.call(this, {{args}}, nodeback); break;\n";
+	        } else {
+	            ret = receiver === undefined
+	                ? "ret = callback({{args}}, nodeback); break;\n"
+	                : "ret = callback.call(receiver, {{args}}, nodeback); break;\n";
+	        }
+	        return ret.replace("{{args}}", args).replace(", ", comma);
+	    }
+
+	    function generateArgumentSwitchCase() {
+	        var ret = "";
+	        for (var i = 0; i < argumentOrder.length; ++i) {
+	            ret += "case " + argumentOrder[i] +":" +
+	                generateCallForArgumentCount(argumentOrder[i]);
+	        }
+
+	        ret += "                                                             \n\
+	        default:                                                             \n\
+	            var args = new Array(len + 1);                                   \n\
+	            var i = 0;                                                       \n\
+	            for (var i = 0; i < len; ++i) {                                  \n\
+	               args[i] = arguments[i];                                       \n\
+	            }                                                                \n\
+	            args[i] = nodeback;                                              \n\
+	            [CodeForCall]                                                    \n\
+	            break;                                                           \n\
+	        ".replace("[CodeForCall]", (shouldProxyThis
+	                                ? "ret = callback.apply(this, args);\n"
+	                                : "ret = callback.apply(receiver, args);\n"));
+	        return ret;
+	    }
+
+	    var getFunctionCode = typeof callback === "string"
+	                                ? ("this != null ? this['"+callback+"'] : fn")
+	                                : "fn";
+	    var body = "'use strict';                                                \n\
+	        var ret = function (Parameters) {                                    \n\
+	            'use strict';                                                    \n\
+	            var len = arguments.length;                                      \n\
+	            var promise = new Promise(INTERNAL);                             \n\
+	            promise._captureStackTrace();                                    \n\
+	            var nodeback = nodebackForPromise(promise, " + multiArgs + ");   \n\
+	            var ret;                                                         \n\
+	            var callback = tryCatch([GetFunctionCode]);                      \n\
+	            switch(len) {                                                    \n\
+	                [CodeForSwitchCase]                                          \n\
+	            }                                                                \n\
+	            if (ret === errorObj) {                                          \n\
+	                promise._rejectCallback(maybeWrapAsError(ret.e), true, true);\n\
+	            }                                                                \n\
+	            if (!promise._isFateSealed()) promise._setAsyncGuaranteed();     \n\
+	            return promise;                                                  \n\
+	        };                                                                   \n\
+	        notEnumerableProp(ret, '__isPromisified__', true);                   \n\
+	        return ret;                                                          \n\
+	    ".replace("[CodeForSwitchCase]", generateArgumentSwitchCase())
+	        .replace("[GetFunctionCode]", getFunctionCode);
+	    body = body.replace("Parameters", parameterDeclaration(newParameterCount));
+	    return new Function("Promise",
+	                        "fn",
+	                        "receiver",
+	                        "withAppended",
+	                        "maybeWrapAsError",
+	                        "nodebackForPromise",
+	                        "tryCatch",
+	                        "errorObj",
+	                        "notEnumerableProp",
+	                        "INTERNAL",
+	                        body)(
+	                    Promise,
+	                    fn,
+	                    receiver,
+	                    withAppended,
+	                    maybeWrapAsError,
+	                    nodebackForPromise,
+	                    util.tryCatch,
+	                    util.errorObj,
+	                    util.notEnumerableProp,
+	                    INTERNAL);
+	};
+	}
+
+	function makeNodePromisifiedClosure(callback, receiver, _, fn, __, multiArgs) {
+	    var defaultThis = (function() {return this;})();
+	    var method = callback;
+	    if (typeof method === "string") {
+	        callback = fn;
+	    }
+	    function promisified() {
+	        var _receiver = receiver;
+	        if (receiver === THIS) _receiver = this;
+	        var promise = new Promise(INTERNAL);
+	        promise._captureStackTrace();
+	        var cb = typeof method === "string" && this !== defaultThis
+	            ? this[method] : callback;
+	        var fn = nodebackForPromise(promise, multiArgs);
+	        try {
+	            cb.apply(_receiver, withAppended(arguments, fn));
+	        } catch(e) {
+	            promise._rejectCallback(maybeWrapAsError(e), true, true);
+	        }
+	        if (!promise._isFateSealed()) promise._setAsyncGuaranteed();
+	        return promise;
+	    }
+	    util.notEnumerableProp(promisified, "__isPromisified__", true);
+	    return promisified;
+	}
+
+	var makeNodePromisified = canEvaluate
+	    ? makeNodePromisifiedEval
+	    : makeNodePromisifiedClosure;
+
+	function promisifyAll(obj, suffix, filter, promisifier, multiArgs) {
+	    var suffixRegexp = new RegExp(escapeIdentRegex(suffix) + "$");
+	    var methods =
+	        promisifiableMethods(obj, suffix, suffixRegexp, filter);
+
+	    for (var i = 0, len = methods.length; i < len; i+= 2) {
+	        var key = methods[i];
+	        var fn = methods[i+1];
+	        var promisifiedKey = key + suffix;
+	        if (promisifier === makeNodePromisified) {
+	            obj[promisifiedKey] =
+	                makeNodePromisified(key, THIS, key, fn, suffix, multiArgs);
+	        } else {
+	            var promisified = promisifier(fn, function() {
+	                return makeNodePromisified(key, THIS, key,
+	                                           fn, suffix, multiArgs);
+	            });
+	            util.notEnumerableProp(promisified, "__isPromisified__", true);
+	            obj[promisifiedKey] = promisified;
+	        }
+	    }
+	    util.toFastProperties(obj);
+	    return obj;
+	}
+
+	function promisify(callback, receiver, multiArgs) {
+	    return makeNodePromisified(callback, receiver, undefined,
+	                                callback, null, multiArgs);
+	}
+
+	Promise.promisify = function (fn, options) {
+	    if (typeof fn !== "function") {
+	        throw new TypeError("expecting a function but got " + util.classString(fn));
+	    }
+	    if (isPromisified(fn)) {
+	        return fn;
+	    }
+	    options = Object(options);
+	    var receiver = options.context === undefined ? THIS : options.context;
+	    var multiArgs = !!options.multiArgs;
+	    var ret = promisify(fn, receiver, multiArgs);
+	    util.copyDescriptors(fn, ret, propsFilter);
+	    return ret;
+	};
+
+	Promise.promisifyAll = function (target, options) {
+	    if (typeof target !== "function" && typeof target !== "object") {
+	        throw new TypeError("the target of promisifyAll must be an object or a function\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	    options = Object(options);
+	    var multiArgs = !!options.multiArgs;
+	    var suffix = options.suffix;
+	    if (typeof suffix !== "string") suffix = defaultSuffix;
+	    var filter = options.filter;
+	    if (typeof filter !== "function") filter = defaultFilter;
+	    var promisifier = options.promisifier;
+	    if (typeof promisifier !== "function") promisifier = makeNodePromisified;
+
+	    if (!util.isIdentifier(suffix)) {
+	        throw new RangeError("suffix must be a valid identifier\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+
+	    var keys = util.inheritedDataKeys(target);
+	    for (var i = 0; i < keys.length; ++i) {
+	        var value = target[keys[i]];
+	        if (keys[i] !== "constructor" &&
+	            util.isClass(value)) {
+	            promisifyAll(value.prototype, suffix, filter, promisifier,
+	                multiArgs);
+	            promisifyAll(value, suffix, filter, promisifier, multiArgs);
+	        }
+	    }
+
+	    return promisifyAll(target, suffix, filter, promisifier, multiArgs);
+	};
+	};
+
+
+	},{"./errors":12,"./nodeback":20,"./util":36}],25:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(
+	    Promise, PromiseArray, tryConvertToPromise, apiRejection) {
+	var util = _dereq_("./util");
+	var isObject = util.isObject;
+	var es5 = _dereq_("./es5");
+	var Es6Map;
+	if (typeof Map === "function") Es6Map = Map;
+
+	var mapToEntries = (function() {
+	    var index = 0;
+	    var size = 0;
+
+	    function extractEntry(value, key) {
+	        this[index] = value;
+	        this[index + size] = key;
+	        index++;
+	    }
+
+	    return function mapToEntries(map) {
+	        size = map.size;
+	        index = 0;
+	        var ret = new Array(map.size * 2);
+	        map.forEach(extractEntry, ret);
+	        return ret;
+	    };
+	})();
+
+	var entriesToMap = function(entries) {
+	    var ret = new Es6Map();
+	    var length = entries.length / 2 | 0;
+	    for (var i = 0; i < length; ++i) {
+	        var key = entries[length + i];
+	        var value = entries[i];
+	        ret.set(key, value);
+	    }
+	    return ret;
+	};
+
+	function PropertiesPromiseArray(obj) {
+	    var isMap = false;
+	    var entries;
+	    if (Es6Map !== undefined && obj instanceof Es6Map) {
+	        entries = mapToEntries(obj);
+	        isMap = true;
+	    } else {
+	        var keys = es5.keys(obj);
+	        var len = keys.length;
+	        entries = new Array(len * 2);
+	        for (var i = 0; i < len; ++i) {
+	            var key = keys[i];
+	            entries[i] = obj[key];
+	            entries[i + len] = key;
+	        }
+	    }
+	    this.constructor$(entries);
+	    this._isMap = isMap;
+	    this._init$(undefined, -3);
+	}
+	util.inherits(PropertiesPromiseArray, PromiseArray);
+
+	PropertiesPromiseArray.prototype._init = function () {};
+
+	PropertiesPromiseArray.prototype._promiseFulfilled = function (value, index) {
+	    this._values[index] = value;
+	    var totalResolved = ++this._totalResolved;
+	    if (totalResolved >= this._length) {
+	        var val;
+	        if (this._isMap) {
+	            val = entriesToMap(this._values);
+	        } else {
+	            val = {};
+	            var keyOffset = this.length();
+	            for (var i = 0, len = this.length(); i < len; ++i) {
+	                val[this._values[i + keyOffset]] = this._values[i];
+	            }
+	        }
+	        this._resolve(val);
+	        return true;
+	    }
+	    return false;
+	};
+
+	PropertiesPromiseArray.prototype.shouldCopyValues = function () {
+	    return false;
+	};
+
+	PropertiesPromiseArray.prototype.getActualLength = function (len) {
+	    return len >> 1;
+	};
+
+	function props(promises) {
+	    var ret;
+	    var castValue = tryConvertToPromise(promises);
+
+	    if (!isObject(castValue)) {
+	        return apiRejection("cannot await properties of a non-object\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    } else if (castValue instanceof Promise) {
+	        ret = castValue._then(
+	            Promise.props, undefined, undefined, undefined, undefined);
+	    } else {
+	        ret = new PropertiesPromiseArray(castValue).promise();
+	    }
+
+	    if (castValue instanceof Promise) {
+	        ret._propagateFrom(castValue, 2);
+	    }
+	    return ret;
+	}
+
+	Promise.prototype.props = function () {
+	    return props(this);
+	};
+
+	Promise.props = function (promises) {
+	    return props(promises);
+	};
+	};
+
+	},{"./es5":13,"./util":36}],26:[function(_dereq_,module,exports){
+	"use strict";
+	function arrayMove(src, srcIndex, dst, dstIndex, len) {
+	    for (var j = 0; j < len; ++j) {
+	        dst[j + dstIndex] = src[j + srcIndex];
+	        src[j + srcIndex] = void 0;
+	    }
+	}
+
+	function Queue(capacity) {
+	    this._capacity = capacity;
+	    this._length = 0;
+	    this._front = 0;
+	}
+
+	Queue.prototype._willBeOverCapacity = function (size) {
+	    return this._capacity < size;
+	};
+
+	Queue.prototype._pushOne = function (arg) {
+	    var length = this.length();
+	    this._checkCapacity(length + 1);
+	    var i = (this._front + length) & (this._capacity - 1);
+	    this[i] = arg;
+	    this._length = length + 1;
+	};
+
+	Queue.prototype._unshiftOne = function(value) {
+	    var capacity = this._capacity;
+	    this._checkCapacity(this.length() + 1);
+	    var front = this._front;
+	    var i = (((( front - 1 ) &
+	                    ( capacity - 1) ) ^ capacity ) - capacity );
+	    this[i] = value;
+	    this._front = i;
+	    this._length = this.length() + 1;
+	};
+
+	Queue.prototype.unshift = function(fn, receiver, arg) {
+	    this._unshiftOne(arg);
+	    this._unshiftOne(receiver);
+	    this._unshiftOne(fn);
+	};
+
+	Queue.prototype.push = function (fn, receiver, arg) {
+	    var length = this.length() + 3;
+	    if (this._willBeOverCapacity(length)) {
+	        this._pushOne(fn);
+	        this._pushOne(receiver);
+	        this._pushOne(arg);
+	        return;
+	    }
+	    var j = this._front + length - 3;
+	    this._checkCapacity(length);
+	    var wrapMask = this._capacity - 1;
+	    this[(j + 0) & wrapMask] = fn;
+	    this[(j + 1) & wrapMask] = receiver;
+	    this[(j + 2) & wrapMask] = arg;
+	    this._length = length;
+	};
+
+	Queue.prototype.shift = function () {
+	    var front = this._front,
+	        ret = this[front];
+
+	    this[front] = undefined;
+	    this._front = (front + 1) & (this._capacity - 1);
+	    this._length--;
+	    return ret;
+	};
+
+	Queue.prototype.length = function () {
+	    return this._length;
+	};
+
+	Queue.prototype._checkCapacity = function (size) {
+	    if (this._capacity < size) {
+	        this._resizeTo(this._capacity << 1);
+	    }
+	};
+
+	Queue.prototype._resizeTo = function (capacity) {
+	    var oldCapacity = this._capacity;
+	    this._capacity = capacity;
+	    var front = this._front;
+	    var length = this._length;
+	    var moveItemsCount = (front + length) & (oldCapacity - 1);
+	    arrayMove(this, 0, this, oldCapacity, moveItemsCount);
+	};
+
+	module.exports = Queue;
+
+	},{}],27:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(
+	    Promise, INTERNAL, tryConvertToPromise, apiRejection) {
+	var util = _dereq_("./util");
+
+	var raceLater = function (promise) {
+	    return promise.then(function(array) {
+	        return race(array, promise);
+	    });
+	};
+
+	function race(promises, parent) {
+	    var maybePromise = tryConvertToPromise(promises);
+
+	    if (maybePromise instanceof Promise) {
+	        return raceLater(maybePromise);
+	    } else {
+	        promises = util.asArray(promises);
+	        if (promises === null)
+	            return apiRejection("expecting an array or an iterable object but got " + util.classString(promises));
+	    }
+
+	    var ret = new Promise(INTERNAL);
+	    if (parent !== undefined) {
+	        ret._propagateFrom(parent, 3);
+	    }
+	    var fulfill = ret._fulfill;
+	    var reject = ret._reject;
+	    for (var i = 0, len = promises.length; i < len; ++i) {
+	        var val = promises[i];
+
+	        if (val === undefined && !(i in promises)) {
+	            continue;
+	        }
+
+	        Promise.cast(val)._then(fulfill, reject, undefined, ret, null);
+	    }
+	    return ret;
+	}
+
+	Promise.race = function (promises) {
+	    return race(promises, undefined);
+	};
+
+	Promise.prototype.race = function () {
+	    return race(this, undefined);
+	};
+
+	};
+
+	},{"./util":36}],28:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise,
+	                          PromiseArray,
+	                          apiRejection,
+	                          tryConvertToPromise,
+	                          INTERNAL,
+	                          debug) {
+	var getDomain = Promise._getDomain;
+	var util = _dereq_("./util");
+	var tryCatch = util.tryCatch;
+
+	function ReductionPromiseArray(promises, fn, initialValue, _each) {
+	    this.constructor$(promises);
+	    var domain = getDomain();
+	    this._fn = domain === null ? fn : util.domainBind(domain, fn);
+	    if (initialValue !== undefined) {
+	        initialValue = Promise.resolve(initialValue);
+	        initialValue._attachCancellationCallback(this);
+	    }
+	    this._initialValue = initialValue;
+	    this._currentCancellable = null;
+	    if(_each === INTERNAL) {
+	        this._eachValues = Array(this._length);
+	    } else if (_each === 0) {
+	        this._eachValues = null;
+	    } else {
+	        this._eachValues = undefined;
+	    }
+	    this._promise._captureStackTrace();
+	    this._init$(undefined, -5);
+	}
+	util.inherits(ReductionPromiseArray, PromiseArray);
+
+	ReductionPromiseArray.prototype._gotAccum = function(accum) {
+	    if (this._eachValues !== undefined && 
+	        this._eachValues !== null && 
+	        accum !== INTERNAL) {
+	        this._eachValues.push(accum);
+	    }
+	};
+
+	ReductionPromiseArray.prototype._eachComplete = function(value) {
+	    if (this._eachValues !== null) {
+	        this._eachValues.push(value);
+	    }
+	    return this._eachValues;
+	};
+
+	ReductionPromiseArray.prototype._init = function() {};
+
+	ReductionPromiseArray.prototype._resolveEmptyArray = function() {
+	    this._resolve(this._eachValues !== undefined ? this._eachValues
+	                                                 : this._initialValue);
+	};
+
+	ReductionPromiseArray.prototype.shouldCopyValues = function () {
+	    return false;
+	};
+
+	ReductionPromiseArray.prototype._resolve = function(value) {
+	    this._promise._resolveCallback(value);
+	    this._values = null;
+	};
+
+	ReductionPromiseArray.prototype._resultCancelled = function(sender) {
+	    if (sender === this._initialValue) return this._cancel();
+	    if (this._isResolved()) return;
+	    this._resultCancelled$();
+	    if (this._currentCancellable instanceof Promise) {
+	        this._currentCancellable.cancel();
+	    }
+	    if (this._initialValue instanceof Promise) {
+	        this._initialValue.cancel();
+	    }
+	};
+
+	ReductionPromiseArray.prototype._iterate = function (values) {
+	    this._values = values;
+	    var value;
+	    var i;
+	    var length = values.length;
+	    if (this._initialValue !== undefined) {
+	        value = this._initialValue;
+	        i = 0;
+	    } else {
+	        value = Promise.resolve(values[0]);
+	        i = 1;
+	    }
+
+	    this._currentCancellable = value;
+
+	    if (!value.isRejected()) {
+	        for (; i < length; ++i) {
+	            var ctx = {
+	                accum: null,
+	                value: values[i],
+	                index: i,
+	                length: length,
+	                array: this
+	            };
+	            value = value._then(gotAccum, undefined, undefined, ctx, undefined);
+	        }
+	    }
+
+	    if (this._eachValues !== undefined) {
+	        value = value
+	            ._then(this._eachComplete, undefined, undefined, this, undefined);
+	    }
+	    value._then(completed, completed, undefined, value, this);
+	};
+
+	Promise.prototype.reduce = function (fn, initialValue) {
+	    return reduce(this, fn, initialValue, null);
+	};
+
+	Promise.reduce = function (promises, fn, initialValue, _each) {
+	    return reduce(promises, fn, initialValue, _each);
+	};
+
+	function completed(valueOrReason, array) {
+	    if (this.isFulfilled()) {
+	        array._resolve(valueOrReason);
+	    } else {
+	        array._reject(valueOrReason);
+	    }
+	}
+
+	function reduce(promises, fn, initialValue, _each) {
+	    if (typeof fn !== "function") {
+	        return apiRejection("expecting a function but got " + util.classString(fn));
+	    }
+	    var array = new ReductionPromiseArray(promises, fn, initialValue, _each);
+	    return array.promise();
+	}
+
+	function gotAccum(accum) {
+	    this.accum = accum;
+	    this.array._gotAccum(accum);
+	    var value = tryConvertToPromise(this.value, this.array._promise);
+	    if (value instanceof Promise) {
+	        this.array._currentCancellable = value;
+	        return value._then(gotValue, undefined, undefined, this, undefined);
+	    } else {
+	        return gotValue.call(this, value);
+	    }
+	}
+
+	function gotValue(value) {
+	    var array = this.array;
+	    var promise = array._promise;
+	    var fn = tryCatch(array._fn);
+	    promise._pushContext();
+	    var ret;
+	    if (array._eachValues !== undefined) {
+	        ret = fn.call(promise._boundValue(), value, this.index, this.length);
+	    } else {
+	        ret = fn.call(promise._boundValue(),
+	                              this.accum, value, this.index, this.length);
+	    }
+	    if (ret instanceof Promise) {
+	        array._currentCancellable = ret;
+	    }
+	    var promiseCreated = promise._popContext();
+	    debug.checkForgottenReturns(
+	        ret,
+	        promiseCreated,
+	        array._eachValues !== undefined ? "Promise.each" : "Promise.reduce",
+	        promise
+	    );
+	    return ret;
+	}
+	};
+
+	},{"./util":36}],29:[function(_dereq_,module,exports){
+	"use strict";
+	var util = _dereq_("./util");
+	var schedule;
+	var noAsyncScheduler = function() {
+	    throw new Error("No async scheduler available\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	};
+	var NativePromise = util.getNativePromise();
+	if (util.isNode && typeof MutationObserver === "undefined") {
+	    var GlobalSetImmediate = global.setImmediate;
+	    var ProcessNextTick = process.nextTick;
+	    schedule = util.isRecentNode
+	                ? function(fn) { GlobalSetImmediate.call(global, fn); }
+	                : function(fn) { ProcessNextTick.call(process, fn); };
+	} else if (typeof NativePromise === "function" &&
+	           typeof NativePromise.resolve === "function") {
+	    var nativePromise = NativePromise.resolve();
+	    schedule = function(fn) {
+	        nativePromise.then(fn);
+	    };
+	} else if ((typeof MutationObserver !== "undefined") &&
+	          !(typeof window !== "undefined" &&
+	            window.navigator &&
+	            (window.navigator.standalone || window.cordova))) {
+	    schedule = (function() {
+	        var div = document.createElement("div");
+	        var opts = {attributes: true};
+	        var toggleScheduled = false;
+	        var div2 = document.createElement("div");
+	        var o2 = new MutationObserver(function() {
+	            div.classList.toggle("foo");
+	            toggleScheduled = false;
+	        });
+	        o2.observe(div2, opts);
+
+	        var scheduleToggle = function() {
+	            if (toggleScheduled) return;
+	                toggleScheduled = true;
+	                div2.classList.toggle("foo");
+	            };
+
+	            return function schedule(fn) {
+	            var o = new MutationObserver(function() {
+	                o.disconnect();
+	                fn();
+	            });
+	            o.observe(div, opts);
+	            scheduleToggle();
+	        };
+	    })();
+	} else if (typeof setImmediate !== "undefined") {
+	    schedule = function (fn) {
+	        setImmediate(fn);
+	    };
+	} else if (typeof setTimeout !== "undefined") {
+	    schedule = function (fn) {
+	        setTimeout(fn, 0);
+	    };
+	} else {
+	    schedule = noAsyncScheduler;
+	}
+	module.exports = schedule;
+
+	},{"./util":36}],30:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports =
+	    function(Promise, PromiseArray, debug) {
+	var PromiseInspection = Promise.PromiseInspection;
+	var util = _dereq_("./util");
+
+	function SettledPromiseArray(values) {
+	    this.constructor$(values);
+	}
+	util.inherits(SettledPromiseArray, PromiseArray);
+
+	SettledPromiseArray.prototype._promiseResolved = function (index, inspection) {
+	    this._values[index] = inspection;
+	    var totalResolved = ++this._totalResolved;
+	    if (totalResolved >= this._length) {
+	        this._resolve(this._values);
+	        return true;
+	    }
+	    return false;
+	};
+
+	SettledPromiseArray.prototype._promiseFulfilled = function (value, index) {
+	    var ret = new PromiseInspection();
+	    ret._bitField = 33554432;
+	    ret._settledValueField = value;
+	    return this._promiseResolved(index, ret);
+	};
+	SettledPromiseArray.prototype._promiseRejected = function (reason, index) {
+	    var ret = new PromiseInspection();
+	    ret._bitField = 16777216;
+	    ret._settledValueField = reason;
+	    return this._promiseResolved(index, ret);
+	};
+
+	Promise.settle = function (promises) {
+	    debug.deprecated(".settle()", ".reflect()");
+	    return new SettledPromiseArray(promises).promise();
+	};
+
+	Promise.prototype.settle = function () {
+	    return Promise.settle(this);
+	};
+	};
+
+	},{"./util":36}],31:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports =
+	function(Promise, PromiseArray, apiRejection) {
+	var util = _dereq_("./util");
+	var RangeError = _dereq_("./errors").RangeError;
+	var AggregateError = _dereq_("./errors").AggregateError;
+	var isArray = util.isArray;
+	var CANCELLATION = {};
+
+
+	function SomePromiseArray(values) {
+	    this.constructor$(values);
+	    this._howMany = 0;
+	    this._unwrap = false;
+	    this._initialized = false;
+	}
+	util.inherits(SomePromiseArray, PromiseArray);
+
+	SomePromiseArray.prototype._init = function () {
+	    if (!this._initialized) {
+	        return;
+	    }
+	    if (this._howMany === 0) {
+	        this._resolve([]);
+	        return;
+	    }
+	    this._init$(undefined, -5);
+	    var isArrayResolved = isArray(this._values);
+	    if (!this._isResolved() &&
+	        isArrayResolved &&
+	        this._howMany > this._canPossiblyFulfill()) {
+	        this._reject(this._getRangeError(this.length()));
+	    }
+	};
+
+	SomePromiseArray.prototype.init = function () {
+	    this._initialized = true;
+	    this._init();
+	};
+
+	SomePromiseArray.prototype.setUnwrap = function () {
+	    this._unwrap = true;
+	};
+
+	SomePromiseArray.prototype.howMany = function () {
+	    return this._howMany;
+	};
+
+	SomePromiseArray.prototype.setHowMany = function (count) {
+	    this._howMany = count;
+	};
+
+	SomePromiseArray.prototype._promiseFulfilled = function (value) {
+	    this._addFulfilled(value);
+	    if (this._fulfilled() === this.howMany()) {
+	        this._values.length = this.howMany();
+	        if (this.howMany() === 1 && this._unwrap) {
+	            this._resolve(this._values[0]);
+	        } else {
+	            this._resolve(this._values);
+	        }
+	        return true;
+	    }
+	    return false;
+
+	};
+	SomePromiseArray.prototype._promiseRejected = function (reason) {
+	    this._addRejected(reason);
+	    return this._checkOutcome();
+	};
+
+	SomePromiseArray.prototype._promiseCancelled = function () {
+	    if (this._values instanceof Promise || this._values == null) {
+	        return this._cancel();
+	    }
+	    this._addRejected(CANCELLATION);
+	    return this._checkOutcome();
+	};
+
+	SomePromiseArray.prototype._checkOutcome = function() {
+	    if (this.howMany() > this._canPossiblyFulfill()) {
+	        var e = new AggregateError();
+	        for (var i = this.length(); i < this._values.length; ++i) {
+	            if (this._values[i] !== CANCELLATION) {
+	                e.push(this._values[i]);
+	            }
+	        }
+	        if (e.length > 0) {
+	            this._reject(e);
+	        } else {
+	            this._cancel();
+	        }
+	        return true;
+	    }
+	    return false;
+	};
+
+	SomePromiseArray.prototype._fulfilled = function () {
+	    return this._totalResolved;
+	};
+
+	SomePromiseArray.prototype._rejected = function () {
+	    return this._values.length - this.length();
+	};
+
+	SomePromiseArray.prototype._addRejected = function (reason) {
+	    this._values.push(reason);
+	};
+
+	SomePromiseArray.prototype._addFulfilled = function (value) {
+	    this._values[this._totalResolved++] = value;
+	};
+
+	SomePromiseArray.prototype._canPossiblyFulfill = function () {
+	    return this.length() - this._rejected();
+	};
+
+	SomePromiseArray.prototype._getRangeError = function (count) {
+	    var message = "Input array must contain at least " +
+	            this._howMany + " items but contains only " + count + " items";
+	    return new RangeError(message);
+	};
+
+	SomePromiseArray.prototype._resolveEmptyArray = function () {
+	    this._reject(this._getRangeError(0));
+	};
+
+	function some(promises, howMany) {
+	    if ((howMany | 0) !== howMany || howMany < 0) {
+	        return apiRejection("expecting a positive integer\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	    var ret = new SomePromiseArray(promises);
+	    var promise = ret.promise();
+	    ret.setHowMany(howMany);
+	    ret.init();
+	    return promise;
+	}
+
+	Promise.some = function (promises, howMany) {
+	    return some(promises, howMany);
+	};
+
+	Promise.prototype.some = function (howMany) {
+	    return some(this, howMany);
+	};
+
+	Promise._SomePromiseArray = SomePromiseArray;
+	};
+
+	},{"./errors":12,"./util":36}],32:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise) {
+	function PromiseInspection(promise) {
+	    if (promise !== undefined) {
+	        promise = promise._target();
+	        this._bitField = promise._bitField;
+	        this._settledValueField = promise._isFateSealed()
+	            ? promise._settledValue() : undefined;
+	    }
+	    else {
+	        this._bitField = 0;
+	        this._settledValueField = undefined;
+	    }
+	}
+
+	PromiseInspection.prototype._settledValue = function() {
+	    return this._settledValueField;
+	};
+
+	var value = PromiseInspection.prototype.value = function () {
+	    if (!this.isFulfilled()) {
+	        throw new TypeError("cannot get fulfillment value of a non-fulfilled promise\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	    return this._settledValue();
+	};
+
+	var reason = PromiseInspection.prototype.error =
+	PromiseInspection.prototype.reason = function () {
+	    if (!this.isRejected()) {
+	        throw new TypeError("cannot get rejection reason of a non-rejected promise\u000a\u000a    See http://goo.gl/MqrFmX\u000a");
+	    }
+	    return this._settledValue();
+	};
+
+	var isFulfilled = PromiseInspection.prototype.isFulfilled = function() {
+	    return (this._bitField & 33554432) !== 0;
+	};
+
+	var isRejected = PromiseInspection.prototype.isRejected = function () {
+	    return (this._bitField & 16777216) !== 0;
+	};
+
+	var isPending = PromiseInspection.prototype.isPending = function () {
+	    return (this._bitField & 50397184) === 0;
+	};
+
+	var isResolved = PromiseInspection.prototype.isResolved = function () {
+	    return (this._bitField & 50331648) !== 0;
+	};
+
+	PromiseInspection.prototype.isCancelled = function() {
+	    return (this._bitField & 8454144) !== 0;
+	};
+
+	Promise.prototype.__isCancelled = function() {
+	    return (this._bitField & 65536) === 65536;
+	};
+
+	Promise.prototype._isCancelled = function() {
+	    return this._target().__isCancelled();
+	};
+
+	Promise.prototype.isCancelled = function() {
+	    return (this._target()._bitField & 8454144) !== 0;
+	};
+
+	Promise.prototype.isPending = function() {
+	    return isPending.call(this._target());
+	};
+
+	Promise.prototype.isRejected = function() {
+	    return isRejected.call(this._target());
+	};
+
+	Promise.prototype.isFulfilled = function() {
+	    return isFulfilled.call(this._target());
+	};
+
+	Promise.prototype.isResolved = function() {
+	    return isResolved.call(this._target());
+	};
+
+	Promise.prototype.value = function() {
+	    return value.call(this._target());
+	};
+
+	Promise.prototype.reason = function() {
+	    var target = this._target();
+	    target._unsetRejectionIsUnhandled();
+	    return reason.call(target);
+	};
+
+	Promise.prototype._value = function() {
+	    return this._settledValue();
+	};
+
+	Promise.prototype._reason = function() {
+	    this._unsetRejectionIsUnhandled();
+	    return this._settledValue();
+	};
+
+	Promise.PromiseInspection = PromiseInspection;
+	};
+
+	},{}],33:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, INTERNAL) {
+	var util = _dereq_("./util");
+	var errorObj = util.errorObj;
+	var isObject = util.isObject;
+
+	function tryConvertToPromise(obj, context) {
+	    if (isObject(obj)) {
+	        if (obj instanceof Promise) return obj;
+	        var then = getThen(obj);
+	        if (then === errorObj) {
+	            if (context) context._pushContext();
+	            var ret = Promise.reject(then.e);
+	            if (context) context._popContext();
+	            return ret;
+	        } else if (typeof then === "function") {
+	            if (isAnyBluebirdPromise(obj)) {
+	                var ret = new Promise(INTERNAL);
+	                obj._then(
+	                    ret._fulfill,
+	                    ret._reject,
+	                    undefined,
+	                    ret,
+	                    null
+	                );
+	                return ret;
+	            }
+	            return doThenable(obj, then, context);
+	        }
+	    }
+	    return obj;
+	}
+
+	function doGetThen(obj) {
+	    return obj.then;
+	}
+
+	function getThen(obj) {
+	    try {
+	        return doGetThen(obj);
+	    } catch (e) {
+	        errorObj.e = e;
+	        return errorObj;
+	    }
+	}
+
+	var hasProp = {}.hasOwnProperty;
+	function isAnyBluebirdPromise(obj) {
+	    try {
+	        return hasProp.call(obj, "_promise0");
+	    } catch (e) {
+	        return false;
+	    }
+	}
+
+	function doThenable(x, then, context) {
+	    var promise = new Promise(INTERNAL);
+	    var ret = promise;
+	    if (context) context._pushContext();
+	    promise._captureStackTrace();
+	    if (context) context._popContext();
+	    var synchronous = true;
+	    var result = util.tryCatch(then).call(x, resolve, reject);
+	    synchronous = false;
+
+	    if (promise && result === errorObj) {
+	        promise._rejectCallback(result.e, true, true);
+	        promise = null;
+	    }
+
+	    function resolve(value) {
+	        if (!promise) return;
+	        promise._resolveCallback(value);
+	        promise = null;
+	    }
+
+	    function reject(reason) {
+	        if (!promise) return;
+	        promise._rejectCallback(reason, synchronous, true);
+	        promise = null;
+	    }
+	    return ret;
+	}
+
+	return tryConvertToPromise;
+	};
+
+	},{"./util":36}],34:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function(Promise, INTERNAL, debug) {
+	var util = _dereq_("./util");
+	var TimeoutError = Promise.TimeoutError;
+
+	function HandleWrapper(handle)  {
+	    this.handle = handle;
+	}
+
+	HandleWrapper.prototype._resultCancelled = function() {
+	    clearTimeout(this.handle);
+	};
+
+	var afterValue = function(value) { return delay(+this).thenReturn(value); };
+	var delay = Promise.delay = function (ms, value) {
+	    var ret;
+	    var handle;
+	    if (value !== undefined) {
+	        ret = Promise.resolve(value)
+	                ._then(afterValue, null, null, ms, undefined);
+	        if (debug.cancellation() && value instanceof Promise) {
+	            ret._setOnCancel(value);
+	        }
+	    } else {
+	        ret = new Promise(INTERNAL);
+	        handle = setTimeout(function() { ret._fulfill(); }, +ms);
+	        if (debug.cancellation()) {
+	            ret._setOnCancel(new HandleWrapper(handle));
+	        }
+	        ret._captureStackTrace();
+	    }
+	    ret._setAsyncGuaranteed();
+	    return ret;
+	};
+
+	Promise.prototype.delay = function (ms) {
+	    return delay(ms, this);
+	};
+
+	var afterTimeout = function (promise, message, parent) {
+	    var err;
+	    if (typeof message !== "string") {
+	        if (message instanceof Error) {
+	            err = message;
+	        } else {
+	            err = new TimeoutError("operation timed out");
+	        }
+	    } else {
+	        err = new TimeoutError(message);
+	    }
+	    util.markAsOriginatingFromRejection(err);
+	    promise._attachExtraTrace(err);
+	    promise._reject(err);
+
+	    if (parent != null) {
+	        parent.cancel();
+	    }
+	};
+
+	function successClear(value) {
+	    clearTimeout(this.handle);
+	    return value;
+	}
+
+	function failureClear(reason) {
+	    clearTimeout(this.handle);
+	    throw reason;
+	}
+
+	Promise.prototype.timeout = function (ms, message) {
+	    ms = +ms;
+	    var ret, parent;
+
+	    var handleWrapper = new HandleWrapper(setTimeout(function timeoutTimeout() {
+	        if (ret.isPending()) {
+	            afterTimeout(ret, message, parent);
+	        }
+	    }, ms));
+
+	    if (debug.cancellation()) {
+	        parent = this.then();
+	        ret = parent._then(successClear, failureClear,
+	                            undefined, handleWrapper, undefined);
+	        ret._setOnCancel(handleWrapper);
+	    } else {
+	        ret = this._then(successClear, failureClear,
+	                            undefined, handleWrapper, undefined);
+	    }
+
+	    return ret;
+	};
+
+	};
+
+	},{"./util":36}],35:[function(_dereq_,module,exports){
+	"use strict";
+	module.exports = function (Promise, apiRejection, tryConvertToPromise,
+	    createContext, INTERNAL, debug) {
+	    var util = _dereq_("./util");
+	    var TypeError = _dereq_("./errors").TypeError;
+	    var inherits = _dereq_("./util").inherits;
+	    var errorObj = util.errorObj;
+	    var tryCatch = util.tryCatch;
+	    var NULL = {};
+
+	    function thrower(e) {
+	        setTimeout(function(){throw e;}, 0);
+	    }
+
+	    function castPreservingDisposable(thenable) {
+	        var maybePromise = tryConvertToPromise(thenable);
+	        if (maybePromise !== thenable &&
+	            typeof thenable._isDisposable === "function" &&
+	            typeof thenable._getDisposer === "function" &&
+	            thenable._isDisposable()) {
+	            maybePromise._setDisposable(thenable._getDisposer());
+	        }
+	        return maybePromise;
+	    }
+	    function dispose(resources, inspection) {
+	        var i = 0;
+	        var len = resources.length;
+	        var ret = new Promise(INTERNAL);
+	        function iterator() {
+	            if (i >= len) return ret._fulfill();
+	            var maybePromise = castPreservingDisposable(resources[i++]);
+	            if (maybePromise instanceof Promise &&
+	                maybePromise._isDisposable()) {
+	                try {
+	                    maybePromise = tryConvertToPromise(
+	                        maybePromise._getDisposer().tryDispose(inspection),
+	                        resources.promise);
+	                } catch (e) {
+	                    return thrower(e);
+	                }
+	                if (maybePromise instanceof Promise) {
+	                    return maybePromise._then(iterator, thrower,
+	                                              null, null, null);
+	                }
+	            }
+	            iterator();
+	        }
+	        iterator();
+	        return ret;
+	    }
+
+	    function Disposer(data, promise, context) {
+	        this._data = data;
+	        this._promise = promise;
+	        this._context = context;
+	    }
+
+	    Disposer.prototype.data = function () {
+	        return this._data;
+	    };
+
+	    Disposer.prototype.promise = function () {
+	        return this._promise;
+	    };
+
+	    Disposer.prototype.resource = function () {
+	        if (this.promise().isFulfilled()) {
+	            return this.promise().value();
+	        }
+	        return NULL;
+	    };
+
+	    Disposer.prototype.tryDispose = function(inspection) {
+	        var resource = this.resource();
+	        var context = this._context;
+	        if (context !== undefined) context._pushContext();
+	        var ret = resource !== NULL
+	            ? this.doDispose(resource, inspection) : null;
+	        if (context !== undefined) context._popContext();
+	        this._promise._unsetDisposable();
+	        this._data = null;
+	        return ret;
+	    };
+
+	    Disposer.isDisposer = function (d) {
+	        return (d != null &&
+	                typeof d.resource === "function" &&
+	                typeof d.tryDispose === "function");
+	    };
+
+	    function FunctionDisposer(fn, promise, context) {
+	        this.constructor$(fn, promise, context);
+	    }
+	    inherits(FunctionDisposer, Disposer);
+
+	    FunctionDisposer.prototype.doDispose = function (resource, inspection) {
+	        var fn = this.data();
+	        return fn.call(resource, resource, inspection);
+	    };
+
+	    function maybeUnwrapDisposer(value) {
+	        if (Disposer.isDisposer(value)) {
+	            this.resources[this.index]._setDisposable(value);
+	            return value.promise();
+	        }
+	        return value;
+	    }
+
+	    function ResourceList(length) {
+	        this.length = length;
+	        this.promise = null;
+	        this[length-1] = null;
+	    }
+
+	    ResourceList.prototype._resultCancelled = function() {
+	        var len = this.length;
+	        for (var i = 0; i < len; ++i) {
+	            var item = this[i];
+	            if (item instanceof Promise) {
+	                item.cancel();
+	            }
+	        }
+	    };
+
+	    Promise.using = function () {
+	        var len = arguments.length;
+	        if (len < 2) return apiRejection(
+	                        "you must pass at least 2 arguments to Promise.using");
+	        var fn = arguments[len - 1];
+	        if (typeof fn !== "function") {
+	            return apiRejection("expecting a function but got " + util.classString(fn));
+	        }
+	        var input;
+	        var spreadArgs = true;
+	        if (len === 2 && Array.isArray(arguments[0])) {
+	            input = arguments[0];
+	            len = input.length;
+	            spreadArgs = false;
+	        } else {
+	            input = arguments;
+	            len--;
+	        }
+	        var resources = new ResourceList(len);
+	        for (var i = 0; i < len; ++i) {
+	            var resource = input[i];
+	            if (Disposer.isDisposer(resource)) {
+	                var disposer = resource;
+	                resource = resource.promise();
+	                resource._setDisposable(disposer);
+	            } else {
+	                var maybePromise = tryConvertToPromise(resource);
+	                if (maybePromise instanceof Promise) {
+	                    resource =
+	                        maybePromise._then(maybeUnwrapDisposer, null, null, {
+	                            resources: resources,
+	                            index: i
+	                    }, undefined);
+	                }
+	            }
+	            resources[i] = resource;
+	        }
+
+	        var reflectedResources = new Array(resources.length);
+	        for (var i = 0; i < reflectedResources.length; ++i) {
+	            reflectedResources[i] = Promise.resolve(resources[i]).reflect();
+	        }
+
+	        var resultPromise = Promise.all(reflectedResources)
+	            .then(function(inspections) {
+	                for (var i = 0; i < inspections.length; ++i) {
+	                    var inspection = inspections[i];
+	                    if (inspection.isRejected()) {
+	                        errorObj.e = inspection.error();
+	                        return errorObj;
+	                    } else if (!inspection.isFulfilled()) {
+	                        resultPromise.cancel();
+	                        return;
+	                    }
+	                    inspections[i] = inspection.value();
+	                }
+	                promise._pushContext();
+
+	                fn = tryCatch(fn);
+	                var ret = spreadArgs
+	                    ? fn.apply(undefined, inspections) : fn(inspections);
+	                var promiseCreated = promise._popContext();
+	                debug.checkForgottenReturns(
+	                    ret, promiseCreated, "Promise.using", promise);
+	                return ret;
+	            });
+
+	        var promise = resultPromise.lastly(function() {
+	            var inspection = new Promise.PromiseInspection(resultPromise);
+	            return dispose(resources, inspection);
+	        });
+	        resources.promise = promise;
+	        promise._setOnCancel(resources);
+	        return promise;
+	    };
+
+	    Promise.prototype._setDisposable = function (disposer) {
+	        this._bitField = this._bitField | 131072;
+	        this._disposer = disposer;
+	    };
+
+	    Promise.prototype._isDisposable = function () {
+	        return (this._bitField & 131072) > 0;
+	    };
+
+	    Promise.prototype._getDisposer = function () {
+	        return this._disposer;
+	    };
+
+	    Promise.prototype._unsetDisposable = function () {
+	        this._bitField = this._bitField & (~131072);
+	        this._disposer = undefined;
+	    };
+
+	    Promise.prototype.disposer = function (fn) {
+	        if (typeof fn === "function") {
+	            return new FunctionDisposer(fn, this, createContext());
+	        }
+	        throw new TypeError();
+	    };
+
+	};
+
+	},{"./errors":12,"./util":36}],36:[function(_dereq_,module,exports){
+	"use strict";
+	var es5 = _dereq_("./es5");
+	var canEvaluate = typeof navigator == "undefined";
+
+	var errorObj = {e: {}};
+	var tryCatchTarget;
+	var globalObject = typeof self !== "undefined" ? self :
+	    typeof window !== "undefined" ? window :
+	    typeof global !== "undefined" ? global :
+	    this !== undefined ? this : null;
+
+	function tryCatcher() {
+	    try {
+	        var target = tryCatchTarget;
+	        tryCatchTarget = null;
+	        return target.apply(this, arguments);
+	    } catch (e) {
+	        errorObj.e = e;
+	        return errorObj;
+	    }
+	}
+	function tryCatch(fn) {
+	    tryCatchTarget = fn;
+	    return tryCatcher;
+	}
+
+	var inherits = function(Child, Parent) {
+	    var hasProp = {}.hasOwnProperty;
+
+	    function T() {
+	        this.constructor = Child;
+	        this.constructor$ = Parent;
+	        for (var propertyName in Parent.prototype) {
+	            if (hasProp.call(Parent.prototype, propertyName) &&
+	                propertyName.charAt(propertyName.length-1) !== "$"
+	           ) {
+	                this[propertyName + "$"] = Parent.prototype[propertyName];
+	            }
+	        }
+	    }
+	    T.prototype = Parent.prototype;
+	    Child.prototype = new T();
+	    return Child.prototype;
+	};
+
+
+	function isPrimitive(val) {
+	    return val == null || val === true || val === false ||
+	        typeof val === "string" || typeof val === "number";
+
+	}
+
+	function isObject(value) {
+	    return typeof value === "function" ||
+	           typeof value === "object" && value !== null;
+	}
+
+	function maybeWrapAsError(maybeError) {
+	    if (!isPrimitive(maybeError)) return maybeError;
+
+	    return new Error(safeToString(maybeError));
+	}
+
+	function withAppended(target, appendee) {
+	    var len = target.length;
+	    var ret = new Array(len + 1);
+	    var i;
+	    for (i = 0; i < len; ++i) {
+	        ret[i] = target[i];
+	    }
+	    ret[i] = appendee;
+	    return ret;
+	}
+
+	function getDataPropertyOrDefault(obj, key, defaultValue) {
+	    if (es5.isES5) {
+	        var desc = Object.getOwnPropertyDescriptor(obj, key);
+
+	        if (desc != null) {
+	            return desc.get == null && desc.set == null
+	                    ? desc.value
+	                    : defaultValue;
+	        }
+	    } else {
+	        return {}.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
+	    }
+	}
+
+	function notEnumerableProp(obj, name, value) {
+	    if (isPrimitive(obj)) return obj;
+	    var descriptor = {
+	        value: value,
+	        configurable: true,
+	        enumerable: false,
+	        writable: true
+	    };
+	    es5.defineProperty(obj, name, descriptor);
+	    return obj;
+	}
+
+	function thrower(r) {
+	    throw r;
+	}
+
+	var inheritedDataKeys = (function() {
+	    var excludedPrototypes = [
+	        Array.prototype,
+	        Object.prototype,
+	        Function.prototype
+	    ];
+
+	    var isExcludedProto = function(val) {
+	        for (var i = 0; i < excludedPrototypes.length; ++i) {
+	            if (excludedPrototypes[i] === val) {
+	                return true;
+	            }
+	        }
+	        return false;
+	    };
+
+	    if (es5.isES5) {
+	        var getKeys = Object.getOwnPropertyNames;
+	        return function(obj) {
+	            var ret = [];
+	            var visitedKeys = Object.create(null);
+	            while (obj != null && !isExcludedProto(obj)) {
+	                var keys;
+	                try {
+	                    keys = getKeys(obj);
+	                } catch (e) {
+	                    return ret;
+	                }
+	                for (var i = 0; i < keys.length; ++i) {
+	                    var key = keys[i];
+	                    if (visitedKeys[key]) continue;
+	                    visitedKeys[key] = true;
+	                    var desc = Object.getOwnPropertyDescriptor(obj, key);
+	                    if (desc != null && desc.get == null && desc.set == null) {
+	                        ret.push(key);
+	                    }
+	                }
+	                obj = es5.getPrototypeOf(obj);
+	            }
+	            return ret;
+	        };
+	    } else {
+	        var hasProp = {}.hasOwnProperty;
+	        return function(obj) {
+	            if (isExcludedProto(obj)) return [];
+	            var ret = [];
+
+	            /*jshint forin:false */
+	            enumeration: for (var key in obj) {
+	                if (hasProp.call(obj, key)) {
+	                    ret.push(key);
+	                } else {
+	                    for (var i = 0; i < excludedPrototypes.length; ++i) {
+	                        if (hasProp.call(excludedPrototypes[i], key)) {
+	                            continue enumeration;
+	                        }
+	                    }
+	                    ret.push(key);
+	                }
+	            }
+	            return ret;
+	        };
+	    }
+
+	})();
+
+	var thisAssignmentPattern = /this\s*\.\s*\S+\s*=/;
+	function isClass(fn) {
+	    try {
+	        if (typeof fn === "function") {
+	            var keys = es5.names(fn.prototype);
+
+	            var hasMethods = es5.isES5 && keys.length > 1;
+	            var hasMethodsOtherThanConstructor = keys.length > 0 &&
+	                !(keys.length === 1 && keys[0] === "constructor");
+	            var hasThisAssignmentAndStaticMethods =
+	                thisAssignmentPattern.test(fn + "") && es5.names(fn).length > 0;
+
+	            if (hasMethods || hasMethodsOtherThanConstructor ||
+	                hasThisAssignmentAndStaticMethods) {
+	                return true;
+	            }
+	        }
+	        return false;
+	    } catch (e) {
+	        return false;
+	    }
+	}
+
+	function toFastProperties(obj) {
+	    /*jshint -W027,-W055,-W031*/
+	    function FakeConstructor() {}
+	    FakeConstructor.prototype = obj;
+	    var l = 8;
+	    while (l--) new FakeConstructor();
+	    return obj;
+	    eval(obj);
+	}
+
+	var rident = /^[a-z$_][a-z$_0-9]*$/i;
+	function isIdentifier(str) {
+	    return rident.test(str);
+	}
+
+	function filledRange(count, prefix, suffix) {
+	    var ret = new Array(count);
+	    for(var i = 0; i < count; ++i) {
+	        ret[i] = prefix + i + suffix;
+	    }
+	    return ret;
+	}
+
+	function safeToString(obj) {
+	    try {
+	        return obj + "";
+	    } catch (e) {
+	        return "[no string representation]";
+	    }
+	}
+
+	function isError(obj) {
+	    return obj !== null &&
+	           typeof obj === "object" &&
+	           typeof obj.message === "string" &&
+	           typeof obj.name === "string";
+	}
+
+	function markAsOriginatingFromRejection(e) {
+	    try {
+	        notEnumerableProp(e, "isOperational", true);
+	    }
+	    catch(ignore) {}
+	}
+
+	function originatesFromRejection(e) {
+	    if (e == null) return false;
+	    return ((e instanceof Error["__BluebirdErrorTypes__"].OperationalError) ||
+	        e["isOperational"] === true);
+	}
+
+	function canAttachTrace(obj) {
+	    return isError(obj) && es5.propertyIsWritable(obj, "stack");
+	}
+
+	var ensureErrorObject = (function() {
+	    if (!("stack" in new Error())) {
+	        return function(value) {
+	            if (canAttachTrace(value)) return value;
+	            try {throw new Error(safeToString(value));}
+	            catch(err) {return err;}
+	        };
+	    } else {
+	        return function(value) {
+	            if (canAttachTrace(value)) return value;
+	            return new Error(safeToString(value));
+	        };
+	    }
+	})();
+
+	function classString(obj) {
+	    return {}.toString.call(obj);
+	}
+
+	function copyDescriptors(from, to, filter) {
+	    var keys = es5.names(from);
+	    for (var i = 0; i < keys.length; ++i) {
+	        var key = keys[i];
+	        if (filter(key)) {
+	            try {
+	                es5.defineProperty(to, key, es5.getDescriptor(from, key));
+	            } catch (ignore) {}
+	        }
+	    }
+	}
+
+	var asArray = function(v) {
+	    if (es5.isArray(v)) {
+	        return v;
+	    }
+	    return null;
+	};
+
+	if (typeof Symbol !== "undefined" && Symbol.iterator) {
+	    var ArrayFrom = typeof Array.from === "function" ? function(v) {
+	        return Array.from(v);
+	    } : function(v) {
+	        var ret = [];
+	        var it = v[Symbol.iterator]();
+	        var itResult;
+	        while (!((itResult = it.next()).done)) {
+	            ret.push(itResult.value);
+	        }
+	        return ret;
+	    };
+
+	    asArray = function(v) {
+	        if (es5.isArray(v)) {
+	            return v;
+	        } else if (v != null && typeof v[Symbol.iterator] === "function") {
+	            return ArrayFrom(v);
+	        }
+	        return null;
+	    };
+	}
+
+	var isNode = typeof process !== "undefined" &&
+	        classString(process).toLowerCase() === "[object process]";
+
+	function env(key, def) {
+	    return isNode ? process.env[key] : def;
+	}
+
+	function getNativePromise() {
+	    if (typeof Promise === "function") {
+	        try {
+	            var promise = new Promise(function(){});
+	            if ({}.toString.call(promise) === "[object Promise]") {
+	                return Promise;
+	            }
+	        } catch (e) {}
+	    }
+	}
+
+	function domainBind(self, cb) {
+	    return self.bind(cb);
+	}
+
+	var ret = {
+	    isClass: isClass,
+	    isIdentifier: isIdentifier,
+	    inheritedDataKeys: inheritedDataKeys,
+	    getDataPropertyOrDefault: getDataPropertyOrDefault,
+	    thrower: thrower,
+	    isArray: es5.isArray,
+	    asArray: asArray,
+	    notEnumerableProp: notEnumerableProp,
+	    isPrimitive: isPrimitive,
+	    isObject: isObject,
+	    isError: isError,
+	    canEvaluate: canEvaluate,
+	    errorObj: errorObj,
+	    tryCatch: tryCatch,
+	    inherits: inherits,
+	    withAppended: withAppended,
+	    maybeWrapAsError: maybeWrapAsError,
+	    toFastProperties: toFastProperties,
+	    filledRange: filledRange,
+	    toString: safeToString,
+	    canAttachTrace: canAttachTrace,
+	    ensureErrorObject: ensureErrorObject,
+	    originatesFromRejection: originatesFromRejection,
+	    markAsOriginatingFromRejection: markAsOriginatingFromRejection,
+	    classString: classString,
+	    copyDescriptors: copyDescriptors,
+	    hasDevTools: typeof chrome !== "undefined" && chrome &&
+	                 typeof chrome.loadTimes === "function",
+	    isNode: isNode,
+	    env: env,
+	    global: globalObject,
+	    getNativePromise: getNativePromise,
+	    domainBind: domainBind
+	};
+	ret.isRecentNode = ret.isNode && (function() {
+	    var version = process.versions.node.split(".").map(Number);
+	    return (version[0] === 0 && version[1] > 10) || (version[0] > 0);
+	})();
+
+	if (ret.isNode) ret.toFastProperties(process);
+
+	try {throw new Error(); } catch (e) {ret.lastLineError = e;}
+	module.exports = ret;
+
+	},{"./es5":13}]},{},[4])(4)
+	});                    ;if (typeof window !== 'undefined' && window !== null) {                               window.P = window.Promise;                                                     } else if (typeof self !== 'undefined' && self !== null) {                             self.P = self.Promise;                                                         }
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4), (function() { return this; }()), __webpack_require__(198).setImmediate))
+
+/***/ },
+/* 198 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var apply = Function.prototype.apply;
+
+	// DOM APIs, for completeness
+
+	exports.setTimeout = function() {
+	  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+	};
+	exports.setInterval = function() {
+	  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+	};
+	exports.clearTimeout =
+	exports.clearInterval = function(timeout) {
+	  if (timeout) {
+	    timeout.close();
+	  }
+	};
+
+	function Timeout(id, clearFn) {
+	  this._id = id;
+	  this._clearFn = clearFn;
+	}
+	Timeout.prototype.unref = Timeout.prototype.ref = function() {};
+	Timeout.prototype.close = function() {
+	  this._clearFn.call(window, this._id);
+	};
+
+	// Does not start the time, just sets up the members needed.
+	exports.enroll = function(item, msecs) {
+	  clearTimeout(item._idleTimeoutId);
+	  item._idleTimeout = msecs;
+	};
+
+	exports.unenroll = function(item) {
+	  clearTimeout(item._idleTimeoutId);
+	  item._idleTimeout = -1;
+	};
+
+	exports._unrefActive = exports.active = function(item) {
+	  clearTimeout(item._idleTimeoutId);
+
+	  var msecs = item._idleTimeout;
+	  if (msecs >= 0) {
+	    item._idleTimeoutId = setTimeout(function onTimeout() {
+	      if (item._onTimeout)
+	        item._onTimeout();
+	    }, msecs);
+	  }
+	};
+
+	// setimmediate attaches itself to the global object
+	__webpack_require__(199);
+	exports.setImmediate = setImmediate;
+	exports.clearImmediate = clearImmediate;
+
+
+/***/ },
+/* 199 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global, process) {(function (global, undefined) {
+	    "use strict";
+
+	    if (global.setImmediate) {
+	        return;
+	    }
+
+	    var nextHandle = 1; // Spec says greater than zero
+	    var tasksByHandle = {};
+	    var currentlyRunningATask = false;
+	    var doc = global.document;
+	    var registerImmediate;
+
+	    function setImmediate(callback) {
+	      // Callback can either be a function or a string
+	      if (typeof callback !== "function") {
+	        callback = new Function("" + callback);
+	      }
+	      // Copy function arguments
+	      var args = new Array(arguments.length - 1);
+	      for (var i = 0; i < args.length; i++) {
+	          args[i] = arguments[i + 1];
+	      }
+	      // Store and register the task
+	      var task = { callback: callback, args: args };
+	      tasksByHandle[nextHandle] = task;
+	      registerImmediate(nextHandle);
+	      return nextHandle++;
+	    }
+
+	    function clearImmediate(handle) {
+	        delete tasksByHandle[handle];
+	    }
+
+	    function run(task) {
+	        var callback = task.callback;
+	        var args = task.args;
+	        switch (args.length) {
+	        case 0:
+	            callback();
+	            break;
+	        case 1:
+	            callback(args[0]);
+	            break;
+	        case 2:
+	            callback(args[0], args[1]);
+	            break;
+	        case 3:
+	            callback(args[0], args[1], args[2]);
+	            break;
+	        default:
+	            callback.apply(undefined, args);
+	            break;
+	        }
+	    }
+
+	    function runIfPresent(handle) {
+	        // From the spec: "Wait until any invocations of this algorithm started before this one have completed."
+	        // So if we're currently running a task, we'll need to delay this invocation.
+	        if (currentlyRunningATask) {
+	            // Delay by doing a setTimeout. setImmediate was tried instead, but in Firefox 7 it generated a
+	            // "too much recursion" error.
+	            setTimeout(runIfPresent, 0, handle);
+	        } else {
+	            var task = tasksByHandle[handle];
+	            if (task) {
+	                currentlyRunningATask = true;
+	                try {
+	                    run(task);
+	                } finally {
+	                    clearImmediate(handle);
+	                    currentlyRunningATask = false;
+	                }
+	            }
+	        }
+	    }
+
+	    function installNextTickImplementation() {
+	        registerImmediate = function(handle) {
+	            process.nextTick(function () { runIfPresent(handle); });
+	        };
+	    }
+
+	    function canUsePostMessage() {
+	        // The test against `importScripts` prevents this implementation from being installed inside a web worker,
+	        // where `global.postMessage` means something completely different and can't be used for this purpose.
+	        if (global.postMessage && !global.importScripts) {
+	            var postMessageIsAsynchronous = true;
+	            var oldOnMessage = global.onmessage;
+	            global.onmessage = function() {
+	                postMessageIsAsynchronous = false;
+	            };
+	            global.postMessage("", "*");
+	            global.onmessage = oldOnMessage;
+	            return postMessageIsAsynchronous;
+	        }
+	    }
+
+	    function installPostMessageImplementation() {
+	        // Installs an event handler on `global` for the `message` event: see
+	        // * https://developer.mozilla.org/en/DOM/window.postMessage
+	        // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
+
+	        var messagePrefix = "setImmediate$" + Math.random() + "$";
+	        var onGlobalMessage = function(event) {
+	            if (event.source === global &&
+	                typeof event.data === "string" &&
+	                event.data.indexOf(messagePrefix) === 0) {
+	                runIfPresent(+event.data.slice(messagePrefix.length));
+	            }
+	        };
+
+	        if (global.addEventListener) {
+	            global.addEventListener("message", onGlobalMessage, false);
+	        } else {
+	            global.attachEvent("onmessage", onGlobalMessage);
+	        }
+
+	        registerImmediate = function(handle) {
+	            global.postMessage(messagePrefix + handle, "*");
+	        };
+	    }
+
+	    function installMessageChannelImplementation() {
+	        var channel = new MessageChannel();
+	        channel.port1.onmessage = function(event) {
+	            var handle = event.data;
+	            runIfPresent(handle);
+	        };
+
+	        registerImmediate = function(handle) {
+	            channel.port2.postMessage(handle);
+	        };
+	    }
+
+	    function installReadyStateChangeImplementation() {
+	        var html = doc.documentElement;
+	        registerImmediate = function(handle) {
+	            // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
+	            // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
+	            var script = doc.createElement("script");
+	            script.onreadystatechange = function () {
+	                runIfPresent(handle);
+	                script.onreadystatechange = null;
+	                html.removeChild(script);
+	                script = null;
+	            };
+	            html.appendChild(script);
+	        };
+	    }
+
+	    function installSetTimeoutImplementation() {
+	        registerImmediate = function(handle) {
+	            setTimeout(runIfPresent, 0, handle);
+	        };
+	    }
+
+	    // If supported, we should attach to the prototype of global, since that is where setTimeout et al. live.
+	    var attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
+	    attachTo = attachTo && attachTo.setTimeout ? attachTo : global;
+
+	    // Don't get fooled by e.g. browserify environments.
+	    if ({}.toString.call(global.process) === "[object process]") {
+	        // For Node.js before 0.9
+	        installNextTickImplementation();
+
+	    } else if (canUsePostMessage()) {
+	        // For non-IE10 modern browsers
+	        installPostMessageImplementation();
+
+	    } else if (global.MessageChannel) {
+	        // For web workers, where supported
+	        installMessageChannelImplementation();
+
+	    } else if (doc && "onreadystatechange" in doc.createElement("script")) {
+	        // For IE 6–8
+	        installReadyStateChangeImplementation();
+
+	    } else {
+	        // For older browsers
+	        installSetTimeoutImplementation();
+	    }
+
+	    attachTo.setImmediate = setImmediate;
+	    attachTo.clearImmediate = clearImmediate;
+	}(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
+
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(4)))
+
+/***/ },
+/* 200 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	//Taken from http://there4development.com/blog/2012/05/02/google-chart-color-list/
+
+	module.exports = ['#3366CC', '#DC3912', '#FF9900', '#109618', '#990099', '#3B3EAC', '#0099C6', '#DD4477', '#66AA00', '#B82E2E', '#316395', '#994499', '#22AA99', '#AAAA11', '#6633CC', '#E67300', '#8B0707', '#329262', '#5574A6', '#3B3EAC'];
+
+/***/ },
+/* 201 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	exports.__esModule = true;
+
+	var _bluebird = __webpack_require__(197);
+
+	var _bluebird2 = _interopRequireDefault(_bluebird);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var debug = __webpack_require__(202)('react-google-charts:GoogleChartLoader'); //GoogleChartLoader Singleton
+
+	// Based on http://blog.arkency.com/2014/09/react-dot-js-and-google-charts/
+
+	var script = typeof window !== 'undefined' ? __webpack_require__(205) : null;
+
+	var googleChartLoader = {
+
+	  isLoaded: false,
+	  isLoading: false,
+	  initPromise: {},
+	  init: function init(packages, version) {
+	    var _this = this;
+
+	    debug('init', packages, version);
+
+	    if (this.isLoading || this.isLoaded) {
+	      return this.initPromise;
+	    }
+	    this.isLoading = true;
+	    this.initPromise = new _bluebird2.default(function (resolve, reject) {
+	      if (typeof window !== 'undefined') {
+	        script("https://www.gstatic.com/charts/loader.js", function () {
+
+	          google.charts.load(version || 'current', { packages: packages || ['corechart'] });
+	          google.charts.setOnLoadCallback(function () {
+	            debug('Chart Loaded');
+	            _this.isLoaded = true;
+	            _this.isLoading = false;
+	            resolve();
+	          });
+	        });
+	      } else {
+	        resolve();
+	      }
+	    });
+	    return this.initPromise;
+	  }
+	};
+
+	exports.default = googleChartLoader;
+	module.exports = exports['default'];
+
+/***/ },
+/* 202 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * This is the web browser implementation of `debug()`.
+	 *
+	 * Expose `debug()` as the module.
+	 */
+
+	exports = module.exports = __webpack_require__(203);
+	exports.log = log;
+	exports.formatArgs = formatArgs;
+	exports.save = save;
+	exports.load = load;
+	exports.useColors = useColors;
+	exports.storage = 'undefined' != typeof window.chrome
+	               && 'undefined' != typeof window.chrome.storage
+	                  ? window.chrome.storage.local
+	                  : localstorage();
+
+	/**
+	 * Colors.
+	 */
+
+	exports.colors = [
+	  'lightseagreen',
+	  'forestgreen',
+	  'goldenrod',
+	  'dodgerblue',
+	  'darkorchid',
+	  'crimson'
+	];
+
+	/**
+	 * Currently only WebKit-based Web Inspectors, Firefox >= v31,
+	 * and the Firebug extension (any Firefox version) are known
+	 * to support "%c" CSS customizations.
+	 *
+	 * TODO: add a `localStorage` variable to explicitly enable/disable colors
+	 */
+
+	function useColors() {
+	  // NB: In an Electron preload script, document will be defined but not fully
+	  // initialized. Since we know we're in Chrome, we'll just detect this case
+	  // explicitly
+	  if (typeof window !== 'undefined' && 'process' in window && window.process.type === 'renderer') {
+	    return true;
+	  }
+
+	  // is webkit? http://stackoverflow.com/a/16459606/376773
+	  // document is undefined in react-native: https://github.com/facebook/react-native/pull/1632
+	  return (typeof document !== 'undefined' && 'WebkitAppearance' in document.documentElement.style) ||
+	    // is firebug? http://stackoverflow.com/a/398120/376773
+	    (typeof window !== 'undefined' && window.console && (console.firebug || (console.exception && console.table))) ||
+	    // is firefox >= v31?
+	    // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
+	    (navigator && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31) ||
+	    // double check webkit in userAgent just in case we are in a worker
+	    (navigator && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/));
+	}
+
+	/**
+	 * Map %j to `JSON.stringify()`, since no Web Inspectors do that by default.
+	 */
+
+	exports.formatters.j = function(v) {
+	  try {
+	    return JSON.stringify(v);
+	  } catch (err) {
+	    return '[UnexpectedJSONParseError]: ' + err.message;
+	  }
+	};
+
+
+	/**
+	 * Colorize log arguments if enabled.
+	 *
+	 * @api public
+	 */
+
+	function formatArgs(args) {
+	  var useColors = this.useColors;
+
+	  args[0] = (useColors ? '%c' : '')
+	    + this.namespace
+	    + (useColors ? ' %c' : ' ')
+	    + args[0]
+	    + (useColors ? '%c ' : ' ')
+	    + '+' + exports.humanize(this.diff);
+
+	  if (!useColors) return;
+
+	  var c = 'color: ' + this.color;
+	  args.splice(1, 0, c, 'color: inherit')
+
+	  // the final "%c" is somewhat tricky, because there could be other
+	  // arguments passed either before or after the %c, so we need to
+	  // figure out the correct index to insert the CSS into
+	  var index = 0;
+	  var lastC = 0;
+	  args[0].replace(/%[a-z%]/g, function(match) {
+	    if ('%%' === match) return;
+	    index++;
+	    if ('%c' === match) {
+	      // we only are interested in the *last* %c
+	      // (the user may have provided their own)
+	      lastC = index;
+	    }
+	  });
+
+	  args.splice(lastC, 0, c);
+	}
+
+	/**
+	 * Invokes `console.log()` when available.
+	 * No-op when `console.log` is not a "function".
+	 *
+	 * @api public
+	 */
+
+	function log() {
+	  // this hackery is required for IE8/9, where
+	  // the `console.log` function doesn't have 'apply'
+	  return 'object' === typeof console
+	    && console.log
+	    && Function.prototype.apply.call(console.log, console, arguments);
+	}
+
+	/**
+	 * Save `namespaces`.
+	 *
+	 * @param {String} namespaces
+	 * @api private
+	 */
+
+	function save(namespaces) {
+	  try {
+	    if (null == namespaces) {
+	      exports.storage.removeItem('debug');
+	    } else {
+	      exports.storage.debug = namespaces;
+	    }
+	  } catch(e) {}
+	}
+
+	/**
+	 * Load `namespaces`.
+	 *
+	 * @return {String} returns the previously persisted debug modes
+	 * @api private
+	 */
+
+	function load() {
+	  try {
+	    return exports.storage.debug;
+	  } catch(e) {}
+
+	  // If debug isn't set in LS, and we're in Electron, try to load $DEBUG
+	  if (typeof process !== 'undefined' && 'env' in process) {
+	    return process.env.DEBUG;
+	  }
+	}
+
+	/**
+	 * Enable namespaces listed in `localStorage.debug` initially.
+	 */
+
+	exports.enable(load());
+
+	/**
+	 * Localstorage attempts to return the localstorage.
+	 *
+	 * This is necessary because safari throws
+	 * when a user disables cookies/localstorage
+	 * and you attempt to access it.
+	 *
+	 * @return {LocalStorage}
+	 * @api private
+	 */
+
+	function localstorage() {
+	  try {
+	    return window.localStorage;
+	  } catch (e) {}
+	}
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 203 */
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	/**
+	 * This is the common logic for both the Node.js and web browser
+	 * implementations of `debug()`.
+	 *
+	 * Expose `debug()` as the module.
+	 */
+
+	exports = module.exports = createDebug.debug = createDebug.default = createDebug;
+	exports.coerce = coerce;
+	exports.disable = disable;
+	exports.enable = enable;
+	exports.enabled = enabled;
+	exports.humanize = __webpack_require__(204);
+
+	/**
+	 * The currently active debug mode names, and names to skip.
+	 */
+
+	exports.names = [];
+	exports.skips = [];
+
+	/**
+	 * Map of special "%n" handling functions, for the debug "format" argument.
+	 *
+	 * Valid key names are a single, lower or upper-case letter, i.e. "n" and "N".
+	 */
+
+	exports.formatters = {};
+
+	/**
+	 * Previous log timestamp.
+	 */
+
+	var prevTime;
+
+	/**
+	 * Select a color.
+	 * @param {String} namespace
+	 * @return {Number}
+	 * @api private
+	 */
+
+	function selectColor(namespace) {
+	  var hash = 0, i;
+
+	  for (i in namespace) {
+	    hash  = ((hash << 5) - hash) + namespace.charCodeAt(i);
+	    hash |= 0; // Convert to 32bit integer
+	  }
+
+	  return exports.colors[Math.abs(hash) % exports.colors.length];
+	}
+
+	/**
+	 * Create a debugger with the given `namespace`.
+	 *
+	 * @param {String} namespace
+	 * @return {Function}
+	 * @api public
+	 */
+
+	function createDebug(namespace) {
+
+	  function debug() {
+	    // disabled?
+	    if (!debug.enabled) return;
+
+	    var self = debug;
+
+	    // set `diff` timestamp
+	    var curr = +new Date();
+	    var ms = curr - (prevTime || curr);
+	    self.diff = ms;
+	    self.prev = prevTime;
+	    self.curr = curr;
+	    prevTime = curr;
+
+	    // turn the `arguments` into a proper Array
+	    var args = new Array(arguments.length);
+	    for (var i = 0; i < args.length; i++) {
+	      args[i] = arguments[i];
+	    }
+
+	    args[0] = exports.coerce(args[0]);
+
+	    if ('string' !== typeof args[0]) {
+	      // anything else let's inspect with %O
+	      args.unshift('%O');
+	    }
+
+	    // apply any `formatters` transformations
+	    var index = 0;
+	    args[0] = args[0].replace(/%([a-zA-Z%])/g, function(match, format) {
+	      // if we encounter an escaped % then don't increase the array index
+	      if (match === '%%') return match;
+	      index++;
+	      var formatter = exports.formatters[format];
+	      if ('function' === typeof formatter) {
+	        var val = args[index];
+	        match = formatter.call(self, val);
+
+	        // now we need to remove `args[index]` since it's inlined in the `format`
+	        args.splice(index, 1);
+	        index--;
+	      }
+	      return match;
+	    });
+
+	    // apply env-specific formatting (colors, etc.)
+	    exports.formatArgs.call(self, args);
+
+	    var logFn = debug.log || exports.log || console.log.bind(console);
+	    logFn.apply(self, args);
+	  }
+
+	  debug.namespace = namespace;
+	  debug.enabled = exports.enabled(namespace);
+	  debug.useColors = exports.useColors();
+	  debug.color = selectColor(namespace);
+
+	  // env-specific initialization logic for debug instances
+	  if ('function' === typeof exports.init) {
+	    exports.init(debug);
+	  }
+
+	  return debug;
+	}
+
+	/**
+	 * Enables a debug mode by namespaces. This can include modes
+	 * separated by a colon and wildcards.
+	 *
+	 * @param {String} namespaces
+	 * @api public
+	 */
+
+	function enable(namespaces) {
+	  exports.save(namespaces);
+
+	  var split = (namespaces || '').split(/[\s,]+/);
+	  var len = split.length;
+
+	  for (var i = 0; i < len; i++) {
+	    if (!split[i]) continue; // ignore empty strings
+	    namespaces = split[i].replace(/\*/g, '.*?');
+	    if (namespaces[0] === '-') {
+	      exports.skips.push(new RegExp('^' + namespaces.substr(1) + '$'));
+	    } else {
+	      exports.names.push(new RegExp('^' + namespaces + '$'));
+	    }
+	  }
+	}
+
+	/**
+	 * Disable debug output.
+	 *
+	 * @api public
+	 */
+
+	function disable() {
+	  exports.enable('');
+	}
+
+	/**
+	 * Returns true if the given mode name is enabled, false otherwise.
+	 *
+	 * @param {String} name
+	 * @return {Boolean}
+	 * @api public
+	 */
+
+	function enabled(name) {
+	  var i, len;
+	  for (i = 0, len = exports.skips.length; i < len; i++) {
+	    if (exports.skips[i].test(name)) {
+	      return false;
+	    }
+	  }
+	  for (i = 0, len = exports.names.length; i < len; i++) {
+	    if (exports.names[i].test(name)) {
+	      return true;
+	    }
+	  }
+	  return false;
+	}
+
+	/**
+	 * Coerce `val`.
+	 *
+	 * @param {Mixed} val
+	 * @return {Mixed}
+	 * @api private
+	 */
+
+	function coerce(val) {
+	  if (val instanceof Error) return val.stack || val.message;
+	  return val;
+	}
+
+
+/***/ },
+/* 204 */
+/***/ function(module, exports) {
+
+	/**
+	 * Helpers.
+	 */
+
+	var s = 1000
+	var m = s * 60
+	var h = m * 60
+	var d = h * 24
+	var y = d * 365.25
+
+	/**
+	 * Parse or format the given `val`.
+	 *
+	 * Options:
+	 *
+	 *  - `long` verbose formatting [false]
+	 *
+	 * @param {String|Number} val
+	 * @param {Object} options
+	 * @throws {Error} throw an error if val is not a non-empty string or a number
+	 * @return {String|Number}
+	 * @api public
+	 */
+
+	module.exports = function (val, options) {
+	  options = options || {}
+	  var type = typeof val
+	  if (type === 'string' && val.length > 0) {
+	    return parse(val)
+	  } else if (type === 'number' && isNaN(val) === false) {
+	    return options.long ?
+				fmtLong(val) :
+				fmtShort(val)
+	  }
+	  throw new Error('val is not a non-empty string or a valid number. val=' + JSON.stringify(val))
+	}
+
+	/**
+	 * Parse the given `str` and return milliseconds.
+	 *
+	 * @param {String} str
+	 * @return {Number}
+	 * @api private
+	 */
+
+	function parse(str) {
+	  str = String(str)
+	  if (str.length > 10000) {
+	    return
+	  }
+	  var match = /^((?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|years?|yrs?|y)?$/i.exec(str)
+	  if (!match) {
+	    return
+	  }
+	  var n = parseFloat(match[1])
+	  var type = (match[2] || 'ms').toLowerCase()
+	  switch (type) {
+	    case 'years':
+	    case 'year':
+	    case 'yrs':
+	    case 'yr':
+	    case 'y':
+	      return n * y
+	    case 'days':
+	    case 'day':
+	    case 'd':
+	      return n * d
+	    case 'hours':
+	    case 'hour':
+	    case 'hrs':
+	    case 'hr':
+	    case 'h':
+	      return n * h
+	    case 'minutes':
+	    case 'minute':
+	    case 'mins':
+	    case 'min':
+	    case 'm':
+	      return n * m
+	    case 'seconds':
+	    case 'second':
+	    case 'secs':
+	    case 'sec':
+	    case 's':
+	      return n * s
+	    case 'milliseconds':
+	    case 'millisecond':
+	    case 'msecs':
+	    case 'msec':
+	    case 'ms':
+	      return n
+	    default:
+	      return undefined
+	  }
+	}
+
+	/**
+	 * Short format for `ms`.
+	 *
+	 * @param {Number} ms
+	 * @return {String}
+	 * @api private
+	 */
+
+	function fmtShort(ms) {
+	  if (ms >= d) {
+	    return Math.round(ms / d) + 'd'
+	  }
+	  if (ms >= h) {
+	    return Math.round(ms / h) + 'h'
+	  }
+	  if (ms >= m) {
+	    return Math.round(ms / m) + 'm'
+	  }
+	  if (ms >= s) {
+	    return Math.round(ms / s) + 's'
+	  }
+	  return ms + 'ms'
+	}
+
+	/**
+	 * Long format for `ms`.
+	 *
+	 * @param {Number} ms
+	 * @return {String}
+	 * @api private
+	 */
+
+	function fmtLong(ms) {
+	  return plural(ms, d, 'day') ||
+	    plural(ms, h, 'hour') ||
+	    plural(ms, m, 'minute') ||
+	    plural(ms, s, 'second') ||
+	    ms + ' ms'
+	}
+
+	/**
+	 * Pluralization helper.
+	 */
+
+	function plural(ms, n, name) {
+	  if (ms < n) {
+	    return
+	  }
+	  if (ms < n * 1.5) {
+	    return Math.floor(ms / n) + ' ' + name
+	  }
+	  return Math.ceil(ms / n) + ' ' + name + 's'
+	}
+
+
+/***/ },
+/* 205 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
+	  * $script.js JS loader & dependency manager
+	  * https://github.com/ded/script.js
+	  * (c) Dustin Diaz 2014 | License MIT
+	  */
+
+	(function (name, definition) {
+	  if (typeof module != 'undefined' && module.exports) module.exports = definition()
+	  else if (true) !(__WEBPACK_AMD_DEFINE_FACTORY__ = (definition), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))
+	  else this[name] = definition()
+	})('$script', function () {
+	  var doc = document
+	    , head = doc.getElementsByTagName('head')[0]
+	    , s = 'string'
+	    , f = false
+	    , push = 'push'
+	    , readyState = 'readyState'
+	    , onreadystatechange = 'onreadystatechange'
+	    , list = {}
+	    , ids = {}
+	    , delay = {}
+	    , scripts = {}
+	    , scriptpath
+	    , urlArgs
+
+	  function every(ar, fn) {
+	    for (var i = 0, j = ar.length; i < j; ++i) if (!fn(ar[i])) return f
+	    return 1
+	  }
+	  function each(ar, fn) {
+	    every(ar, function (el) {
+	      return !fn(el)
+	    })
+	  }
+
+	  function $script(paths, idOrDone, optDone) {
+	    paths = paths[push] ? paths : [paths]
+	    var idOrDoneIsDone = idOrDone && idOrDone.call
+	      , done = idOrDoneIsDone ? idOrDone : optDone
+	      , id = idOrDoneIsDone ? paths.join('') : idOrDone
+	      , queue = paths.length
+	    function loopFn(item) {
+	      return item.call ? item() : list[item]
+	    }
+	    function callback() {
+	      if (!--queue) {
+	        list[id] = 1
+	        done && done()
+	        for (var dset in delay) {
+	          every(dset.split('|'), loopFn) && !each(delay[dset], loopFn) && (delay[dset] = [])
+	        }
+	      }
+	    }
+	    setTimeout(function () {
+	      each(paths, function loading(path, force) {
+	        if (path === null) return callback()
+	        
+	        if (!force && !/^https?:\/\//.test(path) && scriptpath) {
+	          path = (path.indexOf('.js') === -1) ? scriptpath + path + '.js' : scriptpath + path;
+	        }
+	        
+	        if (scripts[path]) {
+	          if (id) ids[id] = 1
+	          return (scripts[path] == 2) ? callback() : setTimeout(function () { loading(path, true) }, 0)
+	        }
+
+	        scripts[path] = 1
+	        if (id) ids[id] = 1
+	        create(path, callback)
+	      })
+	    }, 0)
+	    return $script
+	  }
+
+	  function create(path, fn) {
+	    var el = doc.createElement('script'), loaded
+	    el.onload = el.onerror = el[onreadystatechange] = function () {
+	      if ((el[readyState] && !(/^c|loade/.test(el[readyState]))) || loaded) return;
+	      el.onload = el[onreadystatechange] = null
+	      loaded = 1
+	      scripts[path] = 2
+	      fn()
+	    }
+	    el.async = 1
+	    el.src = urlArgs ? path + (path.indexOf('?') === -1 ? '?' : '&') + urlArgs : path;
+	    head.insertBefore(el, head.lastChild)
+	  }
+
+	  $script.get = create
+
+	  $script.order = function (scripts, id, done) {
+	    (function callback(s) {
+	      s = scripts.shift()
+	      !scripts.length ? $script(s, id, done) : $script(s, callback)
+	    }())
+	  }
+
+	  $script.path = function (p) {
+	    scriptpath = p
+	  }
+	  $script.urlArgs = function (str) {
+	    urlArgs = str;
+	  }
+	  $script.ready = function (deps, ready, req) {
+	    deps = deps[push] ? deps : [deps]
+	    var missing = [];
+	    !each(deps, function (dep) {
+	      list[dep] || missing[push](dep);
+	    }) && every(deps, function (dep) {return list[dep]}) ?
+	      ready() : !function (key) {
+	      delay[key] = delay[key] || []
+	      delay[key][push](ready)
+	      req && req(missing)
+	    }(deps.join('|'))
+	    return $script
+	  }
+
+	  $script.done = function (idOrDone) {
+	    $script([null], idOrDone)
+	  }
+
+	  return $script
+	});
+
+
+/***/ },
+/* 206 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -37382,17 +44527,11433 @@
 				"type": "Feature"
 			}
 		],
-		"type": "FeatureCollection"
+		"type": "mrtStations"
 	};
 
 /***/ },
-/* 195 */
+/* 207 */
+/***/ function(module, exports) {
+
+	module.exports = {
+		"features": [
+			{
+				"geometry": {
+					"coordinates": [
+						121.567904444,
+						25.0408578889
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Road Zhongxiao East Road & Road Chung Yan.",
+					"id": 1,
+					"name": "MRT Taipei City Hall Stataion(Exit 3)-2"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.55742,
+						25.041254
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec,4. Zhongxiao E.Rd/GuangFu S. Rd",
+					"id": 2,
+					"name": "MRT S.Y.S Memorial Hall Stataion(Exit 2.)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.565169444,
+						25.0377972222
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Taipei City Government Eastgate (Song Zhi Road)",
+					"id": 3,
+					"name": "Taipei City Hall"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.562325,
+						25.0360361111
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Road Shifu & Road Song Shou.",
+					"id": 4,
+					"name": "Citizen Square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.5686639,
+						25.0365638889
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Road Songren & Ln. 95, Songren Rd..",
+					"id": 5,
+					"name": "Xingya Jr. High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.565658333,
+						25.0347361111
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Road Song Zhi & Road Song Lian.",
+					"id": 6,
+					"name": "TWTC Exhibition Hall 2"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.565619444,
+						25.0330388889
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Road Song Zhi & Road Xinyi.",
+					"id": 7,
+					"name": "Xinyi Square(Taipei 101)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.563688889,
+						25.0352138889
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Road Shifu & Road Song Shou.",
+					"id": 8,
+					"name": "TWTC Exhibition Hall 3"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.574353,
+						25.03159
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.300, Songde Rd.(32)",
+					"id": 9,
+					"name": "Songde"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.566116667,
+						25.0286611111
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.2, Aly. 11, Ln. 391, Zhuangjing Rd.",
+					"id": 10,
+					"name": "Emergency Operations Center of Taipei City"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.55762,
+						25.034937
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Road Guangfu South & Ln. 346, Sec. 1, Keelung Rd.",
+					"id": 11,
+					"name": "Sanchangli"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.561747,
+						25.026679
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Aly. 59, Ln. 220, Wuxing St.",
+					"id": 12,
+					"name": "Taipei Medical University"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.58367,
+						25.03809
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Road Dadao & St. Fude.",
+					"id": 13,
+					"name": "Fude Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.54037,
+						25.06424
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of St.Wuchang & Road Longjiang.",
+					"id": 14,
+					"name": "Rongxing Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.572043,
+						25.049413
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.568, Sec. 4, Bade Rd.(oppsite)",
+					"id": 15,
+					"name": "Raohe Night Market"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.579135,
+						25.036084
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of St. Linkou & St. Fude.",
+					"id": 16,
+					"name": "Songshan Vocational High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.55514,
+						25.05862
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Road Guangfu S & Road Minsheng E.",
+					"id": 17,
+					"name": "Minsheng & Guangfu Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.552278,
+						25.048268
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.25, Sec. 3, Bade Rd.",
+					"id": 18,
+					"name": "Taipei Cultural Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.56981,
+						25.02863
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.17, Ln. 153, Songren Rd",
+					"id": 19,
+					"name": "Zhongqiang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.543293,
+						25.025896
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.235, Sec. 2, Fusing S. Rd.",
+					"id": 20,
+					"name": "MRT Technology Bldg. Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.548982,
+						25.057985
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The side of bus stop- Dunhua Minsheng Intersection.",
+					"id": 21,
+					"name": "Minsheng & Dunhua Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.578095,
+						25.048616
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Bicycle parking lot- West exit in Songshan station",
+					"id": 22,
+					"name": "Songshan Rail Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.602798,
+						25.055074
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "A side entrance of Dongxin Elementery School(front of No. 62, Dongxin St.)",
+					"id": 23,
+					"name": "Dongxin Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.53747,
+						25.03293
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.S. side of Lianyun St. & Sec. 2, Xinyi Rd.",
+					"id": 24,
+					"name": "Xinyi & Jianguo Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.57205,
+						25.04543
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The sidewalk- the S.W. side of Songxin Rd. & Yongji Rd.",
+					"id": 25,
+					"name": "Yongji & Songxin Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.592375,
+						25.050142
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The side of parking lots in the MRT Kunyang station (exit 1)",
+					"id": 26,
+					"name": "MRT Kunyang Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.61669,
+						25.05469
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E side of Academia Rd. & Shihmin Blvd.",
+					"id": 27,
+					"name": "MRT Nangang Exhibition Center Sta. (Exit 5)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.57467,
+						25.04814
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W side of Songlong Rd. & Hulin St.",
+					"id": 28,
+					"name": "Wuchang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.52655,
+						25.03164
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W side of Aiguo St. & Jinshan Rd.",
+					"id": 29,
+					"name": "Jinshan & Aiguo Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.544352,
+						25.017054
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W side of Keelung Rd. & Changsing St.",
+					"id": 30,
+					"name": "Keelung & Changxing Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.53456,
+						25.022413
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Under the bridge- Sinhai Rd. & Shinsheng S. Rd.",
+					"id": 31,
+					"name": "Xinhai & Xinsheng Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.553161,
+						25.023884
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The outside of the MRT exit and the side of Heping E. Rd.",
+					"id": 32,
+					"name": "MRT Liuzhangli Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.56087,
+						25.04878
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The side of Ln. 91, Sec. 4, Bade Rd. ( beside Zhong-Lun High School)",
+					"id": 33,
+					"name": "Zhonglun High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.532934,
+						25.058369
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The side of Songjiang Rd.(the exit 1 of the MRT station of Xingtian Temple)",
+					"id": 34,
+					"name": "MRT Xingtian Temple Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.533302,
+						25.059978
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The outside of the MRT station of Xingtian Temple.",
+					"id": 35,
+					"name": "MRT Xingtian Temple Sta. (Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.54153,
+						25.02101
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Xinghai Rd. (the outside ofLanguage Center of National Taiwan University)",
+					"id": 36,
+					"name": "NTU Information Bldg."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.528988,
+						25.0337
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ren’ai Rd. & Lishuei St.",
+					"id": 37,
+					"name": "MRT Dongmen Sta. (Exit 4)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.52889,
+						25.02665
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N. side of Heping E. Rd. & Shihda Rd.",
+					"id": 38,
+					"name": "NTNU Library"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.61422,
+						25.058
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Sanchong Rd. & Ln. 88, Jingmao 2nd Rd.",
+					"id": 39,
+					"name": "Nangang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.5864,
+						25.04287
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The front of No. 247, Yucheng St.",
+					"id": 40,
+					"name": "Yucheng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.613706,
+						25.047425
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W side of Ln. 12, Sec. 2, Academia Rd. & Aly. 58, Ln. 12, Sec. 2, Academia Rd.",
+					"id": 41,
+					"name": "Academia Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.58174,
+						25.04431
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W side of Jhongsiao E. Rd. & Jhongpo N. Rd.",
+					"id": 42,
+					"name": "MRT Houshanpi Sta.(Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.614154,
+						25.035639
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of St. Lingyun & Academia Rd.",
+					"id": 43,
+					"name": "Linyun Market"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.616187,
+						25.05973
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The outside of the MRT station exit 2 of Taipei Nangang Exhibition Center",
+					"id": 44,
+					"name": "MRT Nangang Software Park Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.534538,
+						25.01476
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Roosevelt Rd.& Sinhai Rd.",
+					"id": 45,
+					"name": "MRT Gongguan Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.611027,
+						25.05646
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The opposite of parking lots of exit Singdong St. (Nan-Gang Elementary School)",
+					"id": 46,
+					"name": "Nangang Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.533862,
+						25.041924
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Sec. 3, Zhongxiao E. Rd. & Ln. 10, Sec. 3, Zhongxiao E. Rd.",
+					"id": 47,
+					"name": "MRT Zhongxiao Xinsheng Sta.(Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.608202,
+						25.05247
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Sec. 7, Zhongxiao E. Rd. & Ln. 415, Sec. 7, Zhongxiao E. Rd",
+					"id": 48,
+					"name": "Nangang Rail Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.548252,
+						25.040901
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Dunhua S. Rd. & Ln. 236, Sec. 1, Dunhua S. Rd.",
+					"id": 49,
+					"name": "Longmen Square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.560186,
+						25.062002
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Sec. 4, Mincyuan E. Rd. & Xinzhong St.",
+					"id": 50,
+					"name": "MinQuan Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.536775,
+						25.065031
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "(Behind empty area of CPC coporation) Jianguo N. Rd. & Nong’an St.",
+					"id": 51,
+					"name": "Jianguo & Nongan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.536925,
+						25.054761
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N. side of Jianguo N. Rd. & Changchun Rd.",
+					"id": 52,
+					"name": "Jianguo & Changchun Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.536609,
+						25.044781
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Sec.1, Jianguo S. Rd. & Civic Blvd.",
+					"id": 53,
+					"name": "Bade Market"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.538073,
+						25.028798
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Sec. 2, Jianguo S. Rd. & Ln. 151, Sec. 2, Jianguo S. Rd.",
+					"id": 54,
+					"name": "Taipei Public Library"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.549408,
+						25.049505
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.3, Dunhua N. Rd.",
+					"id": 55,
+					"name": "Taipei Stadium"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.522334,
+						25.038954
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Linsen S. Rd & Sec. 1, Ren’ai Rd.(42)",
+					"id": 56,
+					"name": "Renai & Linsen Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.53519,
+						25.026217
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Sec. 2, Xinsheng S. Rd. & Sec. 2, Heping E. Rd",
+					"id": 57,
+					"name": "Xinsheng & Heping Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.5222,
+						25.045267
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Tianjin St. & Sec. 1, Zhongxiao E. Rd.",
+					"id": 58,
+					"name": "MRT Shandao Temple Sta(Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.525805,
+						25.052227
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Linsen N. Rd. & Sec. 1, Nanjing E. Rd.",
+					"id": 59,
+					"name": "Linsen Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.533487,
+						25.064317
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Songjiang Rd. & Nong’an St.",
+					"id": 60,
+					"name": "Zhongshan Dist. Admin. Office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.539723,
+						25.0131
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Sec. 4, Keelung Rd. & Ln. 73, Sec. 4, Keelung Rd",
+					"id": 61,
+					"name": "N.T.U.S.T"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.520258,
+						25.026827
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Heping W. Rd.& Nanchang Rd.",
+					"id": 62,
+					"name": "Nanchang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.545632,
+						25.037569
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Da’an Rd. & Sec. 4, Sinyi Rd.",
+					"id": 63,
+					"name": "Taipei City Hospital Renai Branch"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.517029,
+						25.037773
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Zhongshan S. Rd. & Guiyang St.",
+					"id": 64,
+					"name": "National Central Library"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.502708,
+						25.022725
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The E. side of Qingnian Rd. & Ln. 106, Qingnian Rd.",
+					"id": 65,
+					"name": "Youth Park(Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.537188,
+						25.007528
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The side of Tingzhou Rd. (National Taiwan Normal University- Gongguan Campus)",
+					"id": 66,
+					"name": "NTNU Gongguan Campus"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.516428,
+						25.042973
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Gongyuan Rd. & Siangyang Rd.",
+					"id": 67,
+					"name": "MRT Nat’l Taiwan U. Hospital Sta.(Exit 4)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.506536,
+						25.025865
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Guoxing Rd. & Qingnian Rd.",
+					"id": 68,
+					"name": "Guoxing & Qingnian Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.547778,
+						24.999837
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Ln. 123, Sec. 2, Xinglong Rd. & Sec. 2, Xinglong Rd.",
+					"id": 69,
+					"name": "Xingfong Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.561645,
+						25.032752
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Zhuangjing Rd. & Sec. 5, Xinyi Rd.",
+					"id": 70,
+					"name": "MRT Taipei 101/World Trade Center Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.554204,
+						25.032985
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Tonghua St. & Sec. 4, Xinyi Road., Daan Dist.",
+					"id": 71,
+					"name": "MRT Xinyi Anhe Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.529346,
+						25.048611
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Sec. 1, Xinsheng N. Rd. & Sec. 2, Chang’an E. Rd.",
+					"id": 72,
+					"name": "Xinsheng & Changan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.510195,
+						25.072228
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Sec. 4, Yanping N. Rd. & Jiuquan St.",
+					"id": 73,
+					"name": "Jiuquan & Yanping Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.530547,
+						25.033817
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.S. side of Lianyun St. & Sec. 2, Xinyi Rd.",
+					"id": 74,
+					"name": "Xinyi & Lianyun Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.557635,
+						25.0300508
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Sec. 2, Keelung Rd. & Guangfu S. Rd.",
+					"id": 75,
+					"name": "Keelung & Guangfu Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.527522,
+						25.056387
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Under the bridge- the intersection of Sec. 2, Xinsheng N. Rd. & Ln. 68, Sec. 2, Xinsheng N. Rd.",
+					"id": 76,
+					"name": "Xinsheng & Changchun Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.56297,
+						25.059147
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Sec. 5, Minsheng E. Rd. & Sanmin Rd.",
+					"id": 77,
+					"name": "Minsheng Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.519287,
+						25.071824
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Sec. 3, Chengde Rd. & Kulun St.",
+					"id": 78,
+					"name": "MRT Yuanshan Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.520205,
+						25.061285
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The opposite of No.37, Ln. 70, Minquan W. Rd.",
+					"id": 79,
+					"name": "MRT Minquan W.Rd. Sta.(Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.495869,
+						25.02751
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Dongyuan St. & Ln. 35, Dongyuan St.",
+					"id": 80,
+					"name": "Huajiang High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.528552,
+						25.020547
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Roosevelt Rd. & Xinhai Rd. (Gu Ting Elementary School)",
+					"id": 81,
+					"name": "MRT Taipower Building Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.508693,
+						25.041778
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Sec. 1, Zhonghua Rd. & Baoqing Rd.",
+					"id": 82,
+					"name": "MRT Ximen Sta.(Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.535161,
+						25.033156
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S. side of Ln. 31, Sec. 3, Xinyi Rd. & Sec. 3, Xinyi Rd.",
+					"id": 83,
+					"name": "MRT Daan Park Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.502899,
+						25.029705
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of No.115, Xizang Rd. & Xizang Rd.",
+					"id": 84,
+					"name": "Fuhua Garden New Village(City)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.54911,
+						25.033362
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Sec. 4, Xinyi Rd. & Sec. 1, Dunhua S. Rd.",
+					"id": 85,
+					"name": "Xinyi & Dunhua Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.545138,
+						25.062344
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Fuxing N. Rd. & Sec. 3, Minquan E. Rd.",
+					"id": 86,
+					"name": "Minquan & Fuxing Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.543057,
+						25.033078
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Fuxing S. Rd. & Sec. 3 Xinyi Rd.",
+					"id": 87,
+					"name": "MRT Daan Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.571274,
+						25.032835
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Sec. 5, Xinyi Rd. & Ln. 91, Sec. 5, Xinyi Rd.",
+					"id": 88,
+					"name": "MRT Xiangshan Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.516385,
+						25.027323
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Sec. 3, Chongqing S. Rd. & Sec. 1, Heping W. Rd.",
+					"id": 89,
+					"name": "Heping Chongqing Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.501708,
+						25.037783
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Kangding Rd. & Guilin Rd.",
+					"id": 90,
+					"name": "Laosong Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.523268,
+						25.070629
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Sec. 3, Zhongshan N. Rd. & Jiuquan St.",
+					"id": 91,
+					"name": "Taipei Fine Arts Museum"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.507169,
+						25.046618
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Sec. 2, Kaifeng St. & Xining S. Rd.",
+					"id": 92,
+					"name": "Kaifong & Xining Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.569836,
+						25.023877
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Songren Rd. & Wuxing St.",
+					"id": 93,
+					"name": "Wu Xing Bus Station."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.541059,
+						24.993254
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersectionof Sec. 6, Roosevelt Rd. & Jingzhong St.",
+					"id": 94,
+					"name": "MRT Jingmei Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.497679,
+						25.023393
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Dongyuan St. & Ln. 344, Wanda Rd.",
+					"id": 95,
+					"name": "Dongyuan Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.566558,
+						25.061567
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Fuyuan St. & Fujin St.",
+					"id": 96,
+					"name": "Sanmin Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.524721,
+						25.082825
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The opposite of No.18, Jihe Rd.",
+					"id": 97,
+					"name": "MRT Jiantan Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.540197,
+						24.999378
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Sec. 6, Roosevelt Rd. & Jinglong St. (the S.E. side)",
+					"id": 98,
+					"name": "Roosevelt & Jinglong Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.520711,
+						25.057866
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Minsheng W. Rd. & Wanquan St.",
+					"id": 99,
+					"name": "MRT Shuanglian Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.530697,
+						25.045753
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S. side of Jinshan N. Rd. & Sec. 3, Civic Blvd.",
+					"id": 100,
+					"name": "Jinshen & Civic Blvd. Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.528487,
+						25.043668
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Front of No.41, Sec. 2, Zhongxiao E. Rd.",
+					"id": 101,
+					"name": "Huashan 1914‧Creative Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.525322,
+						25.02043
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Shida Rd. & Tingzhou Rd.",
+					"id": 102,
+					"name": "Taipei City Hakka Cultural Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.500474,
+						25.031974
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Wanda Rd. & Xingning St.",
+					"id": 103,
+					"name": "Wanda & Xingning Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.54074,
+						25.004023
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Wansheng St. Sec. 1, Xinglong Rd.",
+					"id": 104,
+					"name": "Taipei Pot Plant Auction"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.505409,
+						25.044412
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.E. side of Kunming St. & Ln. 50, Xining S. Rd.",
+					"id": 105,
+					"name": "Emei Parking Lot"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.497674,
+						25.032932
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The S.W. side of Sec. 2, Xiyuan Rd. & Bangka Blvd.",
+					"id": 106,
+					"name": "Xiyuan & Bangka Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.509422,
+						25.036402
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The intersection of Bo’ai Rd. & Aiguo W. Rd.",
+					"id": 107,
+					"name": "MRT Xiaonanmen Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.515843,
+						25.073306
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Ln. 59, Hami St. & Hami St.",
+					"id": 108,
+					"name": "Taipei Confucius Temple"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.530805,
+						25.071606
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N. side of Jilin Rd. & Minzu E. Rd.",
+					"id": 109,
+					"name": "Lin An-tai Historical House"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.560888,
+						25.086376
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.E. side of Ln. 21, Wenhu St. & Wenhu St.",
+					"id": 110,
+					"name": "Wenhu Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.543497,
+						25.040184
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "The N.W. side of Sec. 1, Fuxing S. Rd. & Aly. 13, Ln. 123, Sec. 3, Ren’ai Rd.",
+					"id": 111,
+					"name": "MRT Zhongxiao Fuxing Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.503124,
+						25.137456
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Daye Rd. & Zhonghe St.  Intersection",
+					"id": 112,
+					"name": "MRT Xinbeitou Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.561178,
+						25.037724
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 4, Ren’ai Rd. & Yixian Rd.",
+					"id": 113,
+					"name": "Renai & Yixian Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.530386,
+						25.109908
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Zhongcheng Rd. & Ln. 40, Sec. 2, Zhongcheng Rd.",
+					"id": 114,
+					"name": "Lanya Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.520526,
+						25.048222
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Zhongshan N. Rd. & Sec. 1, Civic Blvd.",
+					"id": 115,
+					"name": "Taipei Bus Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.530215,
+						25.096122
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhicheng St. & Zhongzheng Rd.",
+					"id": 116,
+					"name": "Fulin Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.498618,
+						25.132581
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 2, Guangming Rd. & Guangming Rd.  Intersection",
+					"id": 117,
+					"name": "MRT Beitou Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.499152,
+						25.136929
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Daye Rd. & Datong St.  Intersection",
+					"id": 118,
+					"name": "Daye & Datong Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.555116,
+						25.08418
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Jingye 2nd Rd. & Zhifu Rd.",
+					"id": 119,
+					"name": "MRT Jiannan Rd. Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.50026,
+						25.035479
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Heping W. Rd. & Ln. 109, Sec. 3, Heping W. Rd.",
+					"id": 120,
+					"name": "MRT Longshan Temple Sta. (Exit. 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.540568,
+						25.05298
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.100, Longjiang Rd.",
+					"id": 121,
+					"name": "Longjiang & Nanjing Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.575458,
+						25.079681
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Neihu Rd./Gangqian Rd. (southeast)",
+					"id": 122,
+					"name": "MRT Gangqian Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.534136,
+						25.116325
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec.2,Zhongcheng Rd./Ln.207,Sec.2,Zhongcheng Rd.",
+					"id": 123,
+					"name": "Tienmu Sports Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.518163,
+						25.115863
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.36, Zhenhua St.",
+					"id": 124,
+					"name": "Zenhua Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.498495,
+						25.038609
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Huaxi St. & Guilin Rd.",
+					"id": 125,
+					"name": "Huaxi Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.548336,
+						25.022073
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Dunhua S. Rd. & Sec. 2, Keelung Rd.",
+					"id": 126,
+					"name": "Dunhua & Keelung Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.619521,
+						25.073277
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Kangle St./Ln. 125, Kangle St.",
+					"id": 127,
+					"name": "Donghu Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.546726,
+						25.026808
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 198, Siwei Rd./Ln. 1, Sec. 3, Heping E. Rd",
+					"id": 128,
+					"name": "Chengong Public Housing"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.585264,
+						25.078292
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 220, Wende Rd./Wende Rd.",
+					"id": 129,
+					"name": "MRT Wende Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.519411,
+						25.031445
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Roosevelt Rd. & Ningbo E. St.",
+					"id": 130,
+					"name": "Roosevelt & Ningbo E. St. Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.568688,
+						25.079322
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Opposite to the parking space No.500, Ruiguang Rd.",
+					"id": 131,
+					"name": "Zhouzhi Park No.2"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.5331757,
+						25.01603085
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 4, Roosevelt Rd./Sec. 3, Xinsheng S. Rd.",
+					"id": 132,
+					"name": "Roosevelt & Xinsheng S. Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.525888,
+						25.111839
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec.6, Zhongshan N. Rd / Shidong Rd",
+					"id": 133,
+					"name": "Lanxing Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.522629,
+						25.10336
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Fuhua Rd. / Ln. 162, Fuhua Rd.",
+					"id": 134,
+					"name": "MRT Zhishan Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.515677,
+						25.114513
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Donghua St. / Yumin 2nd Rd.",
+					"id": 135,
+					"name": "MRT Shipai Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.517512,
+						25.118049
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 130, Sec. 2, Shipai Rd. / Sec. 2, Shipai Rd.",
+					"id": 136,
+					"name": "NTUNHS"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.493066,
+						25.137976
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Zhongyang N. Rd. / Sec. 2, Fengnian Rd.",
+					"id": 137,
+					"name": "Nat’l Defense U."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.575372,
+						25.040558
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.420, Sec. 5, Zhongxiao E. Rd.",
+					"id": 138,
+					"name": "MRT Yongchun Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.510549,
+						25.054501
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Minle St., Datong Dist./Ln. 233, Nanjing W. Rd.",
+					"id": 139,
+					"name": "Yongle Market"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.512909,
+						25.063404
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Minquan W. Rd./ Sec. 3, Chongqing N. Rd.",
+					"id": 140,
+					"name": "MRT Daqiaotou Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.569984,
+						24.989902
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.220, Sec. 3, Muzha Rd.",
+					"id": 141,
+					"name": "Wenshan Dist. Admin. Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.574214,
+						24.997747
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.18, Ln. 82, Sec. 4, Muzha Rd.",
+					"id": 142,
+					"name": "MRT Muzha Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.578752,
+						24.997659
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.28, Sec. 2, Xinguang Rd.",
+					"id": 143,
+					"name": "MRT Taipei Zoo Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.576536,
+						24.988363
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.6, Ln. 16, Wanshou Rd.",
+					"id": 144,
+					"name": "Nat’l Chengchi U."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.516149,
+						25.066688
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Dalong St. / Ln. 85, Dalong St.",
+					"id": 145,
+					"name": "Shude Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.526556,
+						25.092546
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 247, Zhongzheng Rd. / Ln. 505, Sec. 5, Zhongshan N. Rd.",
+					"id": 146,
+					"name": "MRT Shilin Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.521814,
+						25.089175
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 4, Chengde Rd./Danan Rd.",
+					"id": 147,
+					"name": "Shilin Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.518316,
+						25.110331
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 46, Sec. 1, Zhiyuan 1st Rd./Sec. 1, Xi’an St.",
+					"id": 148,
+					"name": "MRT Mingde Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.509621,
+						25.116665
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.100, Ln. 39, Sec. 1, Shipai Rd.",
+					"id": 149,
+					"name": "Beitou Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.57343,
+						25.036568
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.20, Ln. 168, Songde Rd.",
+					"id": 150,
+					"name": "Songde Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.549827,
+						24.987507
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Shiyuan Rd. / Sec. 1, Muzha Rd.,",
+					"id": 151,
+					"name": "Examination Yuan"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.519175,
+						25.08521
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 100, Qiangang St. / Qiangang St.",
+					"id": 152,
+					"name": "Bailing Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.516299,
+						25.059885
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.51, Jinxi St., Datong Dist.",
+					"id": 153,
+					"name": "Jiang Wei-shui Memorial Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.519867,
+						25.093396
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.420, Zhongzheng Rd.",
+					"id": 154,
+					"name": "Zhongzheng & Jihe Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.57505,
+						25.076193
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ruiguang Rd. / Gangqian Rd.",
+					"id": 155,
+					"name": "Ruiguang & Gangqian Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.615938,
+						25.068409
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Donghu Rd. / Ln. 119, Donghu Rd.",
+					"id": 156,
+					"name": "Donghu Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.571467,
+						25.082703
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 411, Sec. 1, Neihu Rd. / Aly. 19, Ln. 411, Sec. 1, Neihu Rd.",
+					"id": 157,
+					"name": "Lishan Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.613505,
+						25.066635
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 315, Ankang Rd./Ln. 14, Wufen St.",
+					"id": 158,
+					"name": "MRT Donghu Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.566695,
+						25.082866
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 9, Sec. 1, Huanshan Rd./Ln. 285, Sec. 1, Neihu Rd.",
+					"id": 159,
+					"name": "MRT Xihu Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.52029,
+						25.053082
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Nanjing W. Rd. / Ln. 25, Nanjing W. Rd.",
+					"id": 160,
+					"name": "MRT Zhongshan Sta. (Exit 4)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.503768,
+						25.131143
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Huanggang Rd. / Daxing St.",
+					"id": 161,
+					"name": "Dafong Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.52772,
+						25.062924
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Minquan E. Rd./Sec. 3, Xinsheng N. Rd",
+					"id": 162,
+					"name": "MRT Zhongshan Elementary School sta.(Exit 4)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.559279,
+						25.018097
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Heping E. Rd./Ln. 416,Sec. 3, Heping E. Rd.",
+					"id": 163,
+					"name": "MRT Linguang Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.500801,
+						25.126286
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Beitou Rd./Sec. 2, Sanhe St.",
+					"id": 164,
+					"name": "MRT Qiyan Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.505693,
+						25.120788
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Xi'an St./Ln. 257,Sec. 2, Linong St.",
+					"id": 165,
+					"name": "MRT Qilian Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.556177,
+						24.980602
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Muxin Rd./Yishou St.",
+					"id": 166,
+					"name": "Taipei JingMei Girls High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.518046,
+						25.095714
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.363, Jihe Rd.",
+					"id": 167,
+					"name": "Taipei Astronomical Museum"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.522855,
+						25.02288
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Aly. 23, Lane 12, Jinmen St.",
+					"id": 168,
+					"name": "Heti Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.509813,
+						25.030015
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.100, Sec. 2, Heping W. Rd.",
+					"id": 169,
+					"name": "Taipei Botanical Garden"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.568883,
+						25.059245
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 5, Minsheng E. Rd./Tayou Rd.",
+					"id": 170,
+					"name": "XinDong Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.559651,
+						24.996842
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Xinglong Rd./Aly. 8, Ln. 192, Sec. 3, Xinglong Rd.",
+					"id": 171,
+					"name": "Taipei Wen Shan Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.563785,
+						25.051518
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 5, Nanjing E. Rd./Sanmin Rd.",
+					"id": 172,
+					"name": "MRT Nanjing Sanmin Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.533211,
+						25.052181
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Nanjing E. Rd./Sec. 2, Nanjing E. Rd.",
+					"id": 173,
+					"name": "MRT Songjiang Nanjing Sta. (Exit 7)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.553057,
+						25.051702
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 4, Nanjing E. Rd./Jiankang Rd.",
+					"id": 174,
+					"name": "MRT Taipei Arena Sta. (Exit 5)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.544847,
+						25.051618
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Nanjing E. Rd./Ln. 256, Sec. 3, Nanjing E. Rd.",
+					"id": 175,
+					"name": "MRT Nanjing Fuxing Sta. (Exit 5)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.542318,
+						25.055997
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Xing’an St./Liaoning St.",
+					"id": 176,
+					"name": "Xingan Huacheng Community"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.507495,
+						25.082538
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Huanhe N. Rd./Hulu St.",
+					"id": 177,
+					"name": "Hulu Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.510306,
+						25.078908
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.40, Ln. 1, Sec. 5, Yanping N. Rd.",
+					"id": 178,
+					"name": "Yanping Public Housing"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.590885,
+						25.041278
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.383, Fude St.",
+					"id": 179,
+					"name": "Nangang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.592654,
+						25.06877
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 6, Minquan E. Rd./Ln. 180, Sec. 6, Minquan E. Rd.",
+					"id": 180,
+					"name": "Fuhua Market"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.537383,
+						25.02585
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Jianguo S. Rd./Sec. 2, Heping E. Rd.",
+					"id": 181,
+					"name": "JianGuo & Heping Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.523537,
+						25.0253
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Roosevelt Rd./Ln. 174, Sec. 2, Roosevelt Rd.",
+					"id": 182,
+					"name": "MRT Guting Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.514549,
+						25.053884
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Nanjing W. Rd./Sec. 1, Chongqing N. Rd.",
+					"id": 183,
+					"name": "Yuanhuan"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.537892,
+						25.084759
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.143, Tongbei St.",
+					"id": 184,
+					"name": "Jiantan Community"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.54605,
+						25.042342
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 75, Sec. 1/Ln. 75, Sec. 1, Da’an Rd.",
+					"id": 185,
+					"name": "LiuGong Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.514218,
+						25.035414
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Aiguo W. Rd./Gongyuan Rd.",
+					"id": 186,
+					"name": "University of Taipei"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.555769,
+						25.037465
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 4, Ren’ai Rd./Yanji St.",
+					"id": 187,
+					"name": "Renai & Yanji Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.50189,
+						25.090293
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 6, Yanping N. Rd./Shezhong St.",
+					"id": 188,
+					"name": "Taipei Municipal Shezi Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.587821,
+						25.087848
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.7, Aly. 1, Ln. 213, Jinlong Rd.",
+					"id": 189,
+					"name": "JinRui Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.546683,
+						25.079278
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Aly. 41, Ln. 458, Bei’an Rd./Ln. 536, Bei’an Rd.",
+					"id": 190,
+					"name": "MRT Dazhi Sta. (Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.601854,
+						25.083945
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 5, Chenggong Rd./Dahu Shanzhuang St.",
+					"id": 191,
+					"name": "MRT Dahu Park Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.607955,
+						25.072485
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Kangning Rd./Aly. 21, Ln. 450, Sec. 5, Chenggong Rd.",
+					"id": 192,
+					"name": "MRT Huzhou Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.61935,
+						25.041277
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 91, Sec. 1, Jiuzhuang St./Aly. 12, Ln. 91, Sec. 1, Jiuzhuang St.",
+					"id": 193,
+					"name": "Jiuzhuang Recreation Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.524388,
+						25.047958
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Civic Blvd./Linsen N. Rd.",
+					"id": 194,
+					"name": "Civic Blvd Linsen Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.523987,
+						25.035851
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Xinyi Rd./Sec. 1, Hangzhou S. Rd.",
+					"id": 195,
+					"name": "Xinyi Hangzhou Intersection(Chunghwa Telecom)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.589233,
+						25.068744
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 6, Minquan E. Rd./Aly. 31, Ln. 320, Sec. 2, Chenggong Rd.",
+					"id": 196,
+					"name": "Xinhu Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.597924,
+						25.057164
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.26 to No. 36-2, Ln. 125, Chongyang Rd. (opposite)",
+					"id": 201,
+					"name": "Dongyang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.467336,
+						25.124646
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 270, Sec. 3, Dadu Rd./Ln. 55, Ligong St.",
+					"id": 202,
+					"name": "MRT Guandu Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.51057,
+						25.024487
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.465, Sec. 2, Zhonghua Rd. (opposite)",
+					"id": 203,
+					"name": "Guting Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.53742,
+						25.113625
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.276 to No. 280, Shidong Rd., (opposite)",
+					"id": 204,
+					"name": "University of Taipei Tianmu Campus"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.55561,
+						24.988241
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.290, Sec. 1, Muzha Rd.",
+					"id": 205,
+					"name": "Mucha Guanghui Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.55716,
+						25.005386
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.114, Sec. 4, Xinhai Rd.",
+					"id": 206,
+					"name": "MRT Xinhai Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.487477,
+						25.103242
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.250, Sec. 7, Yanping N. Rd.",
+					"id": 207,
+					"name": "Fu-an Junior Hight School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.495342,
+						25.035555
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.280, Sec. 3, Heping W. Rd. (opposite)",
+					"id": 208,
+					"name": "Longshan Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.486071,
+						25.137837
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.17-1, Sec. 3, Zhongyang N. Rd. (opposite)",
+					"id": 209,
+					"name": "MRT Fuxinggang Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.558135,
+						25.079766
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.180, Lequn 2nd Rd.",
+					"id": 210,
+					"name": "Lequn 2nd & Jingye 4th Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.597339,
+						25.080915
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.11, Ln. 210, Xingyun St.",
+					"id": 211,
+					"name": "Xingyun & Jinhu Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.549452,
+						25.084223
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.676, Bei’an Rd.",
+					"id": 212,
+					"name": "Bei'an & Dazhi Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.523107,
+						25.107782
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.80 to No.82, Huangxi St. (opposite)",
+					"id": 213,
+					"name": "Lanya Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.578645,
+						25.055935
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.131 to No.137, Sec. 6, Nanjing E. Rd. (opposite)",
+					"id": 214,
+					"name": "Jihe First Phase Republic Housing"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.510367,
+						25.04993
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhengzhou Rd./Tacheng St.(southwest)",
+					"id": 215,
+					"name": "MRT Beimen Sta. (Exit.3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.544601,
+						25.082553
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Chongshi Rd./Dazhi St. (southeast)",
+					"id": 216,
+					"name": "Peiying Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.574267,
+						25.062645
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.28, Xinhu 3rd Rd.",
+					"id": 217,
+					"name": "Taipei Flowers Auction"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.564108,
+						25.043299
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.15, Ln. 172, Sec. 1, Keelung Rd. (opposite)",
+					"id": 218,
+					"name": "SONG-SHAN Senior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.49074,
+						25.031147
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.300, Sec. 2, Huanhe S. Rd. (opposite)",
+					"id": 219,
+					"name": "Dali High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.510512,
+						25.059162
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.15, Ln. 1, Anxi St. (opposite)",
+					"id": 220,
+					"name": "Dadaocheng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.57105,
+						25.019296
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.5, Aly. 67, Ln. 600, Wuxing St. (opposite)",
+					"id": 221,
+					"name": "Taihe Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.522065,
+						25.064108
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.180, Sec. 2, Zhongshan N. Rd. (opposite)",
+					"id": 222,
+					"name": "Fushun Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.507267,
+						25.1274
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Sanhe St./Gongguan Rd.",
+					"id": 223,
+					"name": "Qingjiang Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.510535,
+						25.088243
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.43, Shezhong St. (opposite)",
+					"id": 224,
+					"name": "Shezheng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.554839,
+						25.0186
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.267, Wolong St. (opposite)",
+					"id": 225,
+					"name": "Wolong & Leye Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.594228,
+						25.054365
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.49, Xiangyang Rd.",
+					"id": 226,
+					"name": "Xiangyang & Nangang Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.57668,
+						25.084244
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.131, Sec. 2, Huanshan Rd. (opposite)",
+					"id": 227,
+					"name": "LiShan High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.567474,
+						24.998956
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.60, Wanfang Rd. (west side)",
+					"id": 228,
+					"name": "MRT Wanfang Community Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.514611,
+						25.049394
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.23, Zhengzhou Rd. (east side)",
+					"id": 229,
+					"name": "Civic & Taiyuan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.580811,
+						25.075366
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.67, Ln. 22, Wende Rd. (opposite)",
+					"id": 230,
+					"name": "Huguang Republic Housing"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.545022,
+						25.047805
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.342, Sec. 2, Bade Rd. (east side)",
+					"id": 231,
+					"name": "Construction & Planning Agency"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.529738,
+						25.118843
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.3-55, Tianmu W. Rd.",
+					"id": 232,
+					"name": "Zhongshan & Tianmu Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.474155,
+						25.131411
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.262, Sec. 4, Zhongyang N. Rd. (opposite)",
+					"id": 233,
+					"name": "MRT Zhongyi Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.526071,
+						25.124162
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Xingyi Rd. (opposite)",
+					"id": 234,
+					"name": "Yongxin Green Area"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.565928,
+						25.04846
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.193, Sec. 5, Civic Blvd.",
+					"id": 235,
+					"name": "Civic Blvd & Dongxing Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.469138,
+						25.119292
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.68, Guandu Rd. (opposite)",
+					"id": 236,
+					"name": "Guandu Nature Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.551418,
+						25.001149
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.30, Ln. 130, Sec. 2, Xinglong Rd. (opposite)",
+					"id": 237,
+					"name": "Wenshan 2nd District Office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.575965,
+						25.073119
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.101, Ruihu St. (opposite)",
+					"id": 238,
+					"name": "Ruihu & Yangguang Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.584098,
+						25.056687
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.323, Xinming Rd.",
+					"id": 239,
+					"name": "Ln. 321, Xinming Rd."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.536802,
+						25.052141
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Nanjing E. Rd./Sec. 2, Jianguo N. Rd.",
+					"id": 240,
+					"name": "Nanjing Jianguo Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.579146,
+						25.038943
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.72, Linkou St. (opposite)",
+					"id": 241,
+					"name": "Linkou Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.463161,
+						25.117472
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.223-5, Sec. 3, Dadu Rd.",
+					"id": 242,
+					"name": "Kuantu Temple"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.506219,
+						25.090202
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Aly. 37, Ln. 20, Yongping St./Aly. 11, Ln. 20, Yongping St.",
+					"id": 243,
+					"name": "Shezi Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.543736,
+						25.045908
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.36-9, Sec. 1, Fuxing S. Rd.",
+					"id": 244,
+					"name": "Fuxing & Civic Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.544028,
+						25.060632
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.370, Fuxing N. Rd.",
+					"id": 245,
+					"name": "MRT Zhongshan Junior High School Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.560627,
+						24.987144
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.50, Sec. 4, Xinglong Rd.",
+					"id": 247,
+					"name": "Mucha Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.555566,
+						25.027123
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.166, Sec. 2, Keelung Rd.",
+					"id": 248,
+					"name": "George Cocational High School of Taipei"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.506624,
+						25.037706
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.206, Sec. 1, Zhonghua Rd.",
+					"id": 249,
+					"name": "Zhonghua & Guilin Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.539873,
+						25.04184
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.221, Sec. 3, Zhongxiao E. Rd.",
+					"id": 250,
+					"name": "Ln. 217, Sec. 3, Zhongxiao E. Rd"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.520692,
+						25.083023
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.80, Jiantan Rd.(oppsite)",
+					"id": 251,
+					"name": "Hualing Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.545608,
+						25.020544
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.55, Sec. 3, Xinhai Rd.",
+					"id": 252,
+					"name": "Daan Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.471482,
+						25.125377
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ligong St./Lide Rd.",
+					"id": 254,
+					"name": "Ligong Lide Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.557674,
+						25.046914
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.23, Guangfu S. Rd.(oppsite)",
+					"id": 255,
+					"name": "Ln. 22, Guangfu S. Rd."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.527526,
+						25.096507
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.609 to No.625, Sec. 5, Zhongshan N. Rd.",
+					"id": 256,
+					"name": "Zhongshan & Zhongzheng  Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.492637,
+						25.023316
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.243, Dechang St.(oppsite)",
+					"id": 257,
+					"name": "Jinde Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.507979,
+						25.052096
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.299-2, Chang’an W. Rd.(oppsite)",
+					"id": 258,
+					"name": "Taipei City Hospital (Zhongxing Branch)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.542168,
+						25.051761
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.189, Sec. 3, Nanjing E. Rd.(oppsite)",
+					"id": 259,
+					"name": "Nanjing & Liaoning Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.583991,
+						25.068616
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.50, Sec. 6, Minquan E. Rd.",
+					"id": 260,
+					"name": "Minquan & Ruiguang Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.560928,
+						25.054095
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.177, Jiankang Rd.",
+					"id": 261,
+					"name": "Jiankang New Village"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.569064,
+						24.984144
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.156, Sec. 2, Muxin Rd.",
+					"id": 262,
+					"name": "YONG AN ART CENTER - Performing Arts School 36"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.542153,
+						25.097103
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Zhishan Rd./ Linxi Rd. intersection",
+					"id": 263,
+					"name": "Zhishan Linxi Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.493009,
+						25.145936
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.50, Xiushan Rd.",
+					"id": 264,
+					"name": "Xiushan Community Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.580194,
+						25.05062
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.869, Sec. 4, Bade Rd.",
+					"id": 267,
+					"name": "Bade & Zhongpo Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.529217,
+						25.105429
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.6, Zhongyi St.(oppsite)",
+					"id": 270,
+					"name": "Yu Nong Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.563125,
+						24.984707
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.22, Sec. 2, Zhongshun St.",
+					"id": 272,
+					"name": "Zhongshun Public Places"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.535954,
+						25.110437
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Dexing E. Rd./Ln. 283, Dexing E. Rd.Intersection(northeast)",
+					"id": 273,
+					"name": "Zhishan Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.507688,
+						25.040988
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Zhonghua Rd./Sec. 2, Changsha St. intersection(Southwest)",
+					"id": 275,
+					"name": "Nishi Honganji Square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.55932,
+						25.028679
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.28, Aly. 35, Ln. 118, Wuxing St.",
+					"id": 276,
+					"name": "Sanxing Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.51025,
+						25.044091
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Yanping S. Rd./Sec. 1, Wuchang St. intersection(southeast)",
+					"id": 277,
+					"name": "Zhongshan Hall"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.53398,
+						24.99116
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No. 3, Lane 700 Chung Cheng Road, Xindian District",
+					"id": 1001,
+					"name": "Dapeng Community"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.662748,
+						25.068914
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Nanchang St./Xinchang Rd.",
+					"id": 1002,
+					"name": "Xizhi Railway Station"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.658301,
+						25.064162
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Xintai 5th Rd./Ren’ai Rd.",
+					"id": 1003,
+					"name": "Xizhi Dist. Office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.662555,
+						25.07315
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No78, Jiancheng Rd",
+					"id": 1004,
+					"name": "Cathay General Hospital"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.546319,
+						24.979649
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "",
+					"id": 1005,
+					"name": "Yulon Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.541721,
+						24.983977
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Bao'an St./Ln. 58,Bao'an St",
+					"id": 1006,
+					"name": "MRT Dapinglin Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.653019,
+						25.064106
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 184,Sec. 2, Datong Rd./Ln. 202,Long’an Rd.",
+					"id": 1007,
+					"name": "Xike Railway Station(North)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.483101,
+						25.060125
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 120, Sec. 1, Chongyang Rd./Ln. 2, Zhonghua Rd.",
+					"id": 1008,
+					"name": "Xinghua Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.488489,
+						25.054391
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Jimei St., Sanchong Dist./Ln. 184, Sec. 4, Chongxin Rd.",
+					"id": 1009,
+					"name": "San chong Civil Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.484739,
+						25.055883
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Jieyun Rd./Ln. 37, Jieyun Rd.",
+					"id": 1010,
+					"name": "MRT Sanchong Sta. (Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.640367,
+						25.066688
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhangshu 2nd Rd./Ln. 141, Zhangshu 1st Rd.",
+					"id": 1011,
+					"name": "Zhangshu Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.628908,
+						25.0688
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongxing Rd./Minzu 6th St.",
+					"id": 1012,
+					"name": "Jinlong Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.618888,
+						25.047578
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.90, Sec. 2, Minquan St.",
+					"id": 1013,
+					"name": "Pai Yun Primary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.624333,
+						25.039031
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Dongshi St./Fangyuan St.",
+					"id": 1014,
+					"name": "Yixing-Dongshi Civic Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.428348,
+						25.025358
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 57, Jian’an St./Jian’an St.",
+					"id": 1015,
+					"name": "Hougang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.42387,
+						25.024125
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.17, Siwei Rd./No.20, Siwei Rd.",
+					"id": 1016,
+					"name": "Fuying Administration Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.428048,
+						25.017113
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Xisheng St./Ln. 201, Xisheng St.",
+					"id": 1017,
+					"name": "Xisheng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.542779,
+						24.974272
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Beixin Rd./Ln. 97, Sec. 2, Beixin Rd.",
+					"id": 1018,
+					"name": "Zhongcheng Village (Ln. 97, Sec. 2, Beixin Rd)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.471621,
+						25.090565
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.139, Minquan Rd.",
+					"id": 1019,
+					"name": "Renai Square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.484337,
+						25.066245
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongzheng N. Rd./Ln. 175, Sanmin St.",
+					"id": 1020,
+					"name": "Chong Yang Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.488982,
+						25.063396
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.107, Zhongzheng N. Rd",
+					"id": 1021,
+					"name": "Mingzhi Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.480705,
+						25.068681
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 276, Zhongzheng N. Rd.",
+					"id": 1022,
+					"name": "San-Chung Commercial and Industrial Vocational High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.452069,
+						25.036152
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongzheng Rd./Sec. 1, Zhonghua Rd.",
+					"id": 1023,
+					"name": "MRT Xinzhuang Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.633149,
+						25.065042
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Yuanxing Rd./Ln. 150, Zhongxing Rd.",
+					"id": 1024,
+					"name": "Yuan Xing Square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.655207,
+						25.056875
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.42 to No.68, Sec. 2, Shuiyuan Rd.",
+					"id": 1025,
+					"name": "Wenhua-Baiyun Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.521988,
+						24.996151
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Gengsheng St./Zili Rd.",
+					"id": 1026,
+					"name": "Xiushan Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.511588,
+						25.001013
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhong’an St./Ln. 378, Zhonghe Rd.",
+					"id": 1027,
+					"name": "MRT Yongan Market Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.52093,
+						25.005952
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Yongzhen Rd./Yongheng Rd.",
+					"id": 1028,
+					"name": "Fuhe Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.505825,
+						25.009838
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ren’ai Rd./Baosheng Rd.",
+					"id": 1029,
+					"name": "Renai Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.51435,
+						25.000726
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Anle Rd./Dehe Rd.",
+					"id": 1030,
+					"name": "Zhonghe Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.631525,
+						25.069473
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Aly. 2, Ln. 31, Huqian St./Ln. 31, Huqian St.",
+					"id": 1031,
+					"name": "Jinlong Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.483618,
+						25.085688
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 221, Jixian Rd.",
+					"id": 1032,
+					"name": "Chong Yang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.472722,
+						25.085815
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.105, Sanmin Rd.",
+					"id": 1033,
+					"name": "MRT Sanmin Senior High School Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.463894,
+						25.083316
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.22, Changxing Rd.",
+					"id": 1034,
+					"name": "Zhung Yuan Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.414662,
+						25.027694
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 77, Shuangfeng Rd.(Danfeng Police Station)",
+					"id": 1035,
+					"name": "Danfeng Police Substation"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.53814,
+						24.977227
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Minzu Rd./Jianxing St.",
+					"id": 1036,
+					"name": "Little Kinmen Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.54687,
+						24.97618
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Sec. 3, Zhongxing Rd.",
+					"id": 1037,
+					"name": "Zhongxing & Baoqiao Intersection　"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.446053,
+						25.041603
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.75, Hexing St./No.23, Sec. 1, Fuxing Rd.",
+					"id": 1038,
+					"name": "Xinzhuang Baseball Court"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.511261,
+						25.015811
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.133, Wenhua Rd.",
+					"id": 1039,
+					"name": "Tinghsi Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.517442,
+						25.002272
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.390 to No.426, Zhongzheng Rd.(opposite)",
+					"id": 1040,
+					"name": "Yonghe Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.522843,
+						24.999392
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.15 to No.23, Minsheng Rd.(opposite)",
+					"id": 1041,
+					"name": "Xiu Lang Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.536887,
+						24.985872
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.289, Jianguo Rd.",
+					"id": 1042,
+					"name": "Taipei Tzu Chi Hospital"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.515271,
+						25.012176
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Zhongxing St.(opposite)",
+					"id": 1043,
+					"name": "MRT Dingxi Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.506471,
+						25.012691
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.248 to No.250, Bao’an Rd.",
+					"id": 1044,
+					"name": "Bao'an & Yongping Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.539554,
+						24.972127
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.14 to No.18, Sanmin Rd.",
+					"id": 1045,
+					"name": "Our Lady of Providence Girls' High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.534209,
+						24.974181
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 159, Sanmin Rd./ No.108, Sanmin Rd.",
+					"id": 1046,
+					"name": "Hsin Tien Senior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.444453,
+						25.04715
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.133, Zhongping Rd.",
+					"id": 1047,
+					"name": "Xinzhuang Culture and Arts Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.451752,
+						25.054232
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongyuan Rd./Sec. 2, Zhonghua Rd",
+					"id": 1048,
+					"name": "Zhonghua & Zhongyuan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.489525,
+						25.087225
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Sanxin Rd.",
+					"id": 1049,
+					"name": "New Taipei Senior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.457746,
+						25.051829
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.130 to No.140, Fushou St.",
+					"id": 1050,
+					"name": "Fushou Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.674342,
+						25.079523
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Baochang Rd./Ln. 45, Baochang Rd.",
+					"id": 1051,
+					"name": "Baochang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.527287,
+						24.975308
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.64, Zhongyang 4th St. (opposite)",
+					"id": 1052,
+					"name": "Zhongyang Market"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.509092,
+						25.00979
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Yongping Rd./Ln. 203, Yongping Rd.",
+					"id": 1053,
+					"name": "Yong-Ping High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.543384,
+						24.970415
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 75 to Ln. 95 , Zhongzheng Rd.",
+					"id": 1054,
+					"name": "Huiguo Market"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.524176,
+						24.978494
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Xiyuan Rd./Zhongshan Rd.",
+					"id": 1055,
+					"name": "Sunshine Bridge"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.54195,
+						24.986942
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Zhongxing Rd./Baoqing St.",
+					"id": 1056,
+					"name": "Zhongxing & Baoqing Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.649512,
+						25.061262
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.90 to No.116, Sec. 1, Xintai 5th Rd.",
+					"id": 1057,
+					"name": "Oriental Science Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.65443,
+						25.062989
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Lianxing St./Ln. 28, Long’an Rd.",
+					"id": 1058,
+					"name": "Lianxing & Long’an Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.655586,
+						25.061034
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.33, Zhuangjing St.",
+					"id": 1059,
+					"name": "Qingshan Elementary and Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.659067,
+						25.066238
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Xike Rd./Xiufeng Rd.",
+					"id": 1060,
+					"name": "Xizhi Sports Field"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.659763,
+						25.067682
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.451, Sec. 2, Datong Rd.",
+					"id": 1061,
+					"name": "Xizhi Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.503376,
+						25.010786
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Baoshun & Huanhe W. Intersection",
+					"id": 1062,
+					"name": "Baoshun & Huanhe W. Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.634899,
+						25.0579
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.237, Sec. 1, Datong Rd.",
+					"id": 1063,
+					"name": "Taiwan Science Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.536296,
+						24.971496
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No. 36 to No.42-1, Sanmin Rd.",
+					"id": 1064,
+					"name": "Chung Cheng Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.503557,
+						25.066074
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.58, Kaiyuan St./Aly. 16, Ln. 65, Changyuan St. (opposite)",
+					"id": 1065,
+					"name": "Kaiyuan Civic Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.626018,
+						25.058078
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.185, Nanyang St.",
+					"id": 1066,
+					"name": "Taipei Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.477656,
+						25.065976
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.164 to No.188, Dingkan St. (opposite)",
+					"id": 1067,
+					"name": "Er Chong Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.480465,
+						25.065957
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Ln. 75, Sec. 3, Zhongxiao Rd. to No.11, Ln. 75, Sec. 3, Zhongxiao Rd. (opposite)",
+					"id": 1068,
+					"name": "Er Chung Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.488229,
+						25.060566
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 12, Zhongshan Rd.,/Aly. 2, Ln. 5, Sec. 1, New Taipei Blvd.",
+					"id": 1069,
+					"name": "Sanchong District office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.495529,
+						25.066099
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.162, Sec. 1, Ziqiang Rd. to No.4, Aly. 2, Sec. 1, Ziqiang Rd. (opposite)",
+					"id": 1070,
+					"name": "New Taipei City Library Sanchong Branch"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.490935,
+						25.070507
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.127, Dazhi St. to No.137, Dazhi St. (opposite)",
+					"id": 1071,
+					"name": "Sanzhang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.422799,
+						25.029032
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongzheng Rd./Min’an Rd",
+					"id": 1072,
+					"name": "MRT Danfeng Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.524184,
+						25.010032
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.27, Ln. 217, Yuxi St. (opposite)",
+					"id": 1073,
+					"name": "Yongfu Bridge"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.447639,
+						25.046418
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.62, Zhonghe St. (opposite)",
+					"id": 1074,
+					"name": "Zhonggang Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.487588,
+						25.069499
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.27, Ln. 74, Sec. 2, Ziqiang Rd. (opposite)",
+					"id": 1075,
+					"name": "Liuhe Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.497818,
+						25.068551
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.101 to No. 119, Wenhua N. Rd. (opposite)",
+					"id": 1076,
+					"name": "Zhengyi Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.479852,
+						25.080468
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.3, Zhongshan 1st Rd.",
+					"id": 1077,
+					"name": "MRT St.Ignatius High School Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.448239,
+						25.052382
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.74, Zhongxin St.",
+					"id": 1078,
+					"name": "Huangcheng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.492198,
+						25.060471
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.67, Sec. 3, Chongxin Rd.",
+					"id": 1079,
+					"name": "MRT Cailiao Sta. (Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.487795,
+						25.075881
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.95 to N0. 97, Sec. 4, Sanhe Rd. (opposite)",
+					"id": 1080,
+					"name": "MRT Sanhe Junior High School Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.487692,
+						24.993477
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Hecheng Rd./  Zhongzheng Second Bridge",
+					"id": 1081,
+					"name": "Zhonghe Civil Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.422185,
+						25.021308
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.181, Siwei Rd. (opposite)",
+					"id": 1082,
+					"name": "Siwei Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.461613,
+						25.091945
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 237, Changxing Rd./Changxing Rd.",
+					"id": 1083,
+					"name": "Luzhou Civil Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.485712,
+						25.070884
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongxiao Rd./Ln. 32, Sec. 2, Zhongxiao Rd.",
+					"id": 1084,
+					"name": "Helping Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.491926,
+						25.061446
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Sec. 1, New Taipei Blvd.",
+					"id": 1085,
+					"name": "Sanchong Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.498749,
+						25.064804
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.18, Xinyi W. St. (opposite)",
+					"id": 1086,
+					"name": "Xinyi Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.53029,
+						24.97152
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "MRT Xiaobitan Sta. (Exit.1) (Huanhe Rd.)",
+					"id": 1087,
+					"name": "MRT Xiaobitan Sta. (Exit.1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.526729,
+						25.000705
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.28 to No.34, Sec. 2, Chenggong Rd.",
+					"id": 1088,
+					"name": "Xiu de Village (Chenggong Rd. Sec. 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.459424,
+						25.089987
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Aly. 42, Ln. 38, Yongle St.",
+					"id": 1089,
+					"name": "Yongping Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.458733,
+						25.084764
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.6, Ln. 220, Chang’an St. (opposite)",
+					"id": 1090,
+					"name": "Yongkang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.462124,
+						25.05218
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.165, Toucheng St. (opposite)",
+					"id": 1091,
+					"name": "Touqian Sports Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.459318,
+						25.054464
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.3 to No.9 , Zhongyuan Rd. (opposite)",
+					"id": 1092,
+					"name": "Touqian Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.537462,
+						24.983184
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.259, Jianguo Rd.",
+					"id": 1093,
+					"name": "Jianguo Minquan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.48371,
+						25.064447
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sanmin St./Zhonghua Rd.",
+					"id": 1094,
+					"name": "Lian Bang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.464031,
+						25.091637
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sanmin Rd./Zhongzheng Rd.",
+					"id": 1095,
+					"name": "MRT Luzhou Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.488208,
+						25.051542
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.2 to No.8, Jicheng Rd.",
+					"id": 1096,
+					"name": "Ji Cheng Cheng Gong Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.458152,
+						25.022235
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Yingshi Rd./Jhihle Rd.",
+					"id": 1097,
+					"name": "Banqiao Civil Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.477572,
+						25.024478
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.25, Sec. 1, Shuangshi Rd.",
+					"id": 1098,
+					"name": "Yongan Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.472359,
+						25.029729
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Wenhua Rd./Sec. 2, Shuangshi Rd.",
+					"id": 1099,
+					"name": "MRT Jiangzicui Sta.(Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.48046,
+						25.028631
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.97, Datong St.",
+					"id": 1100,
+					"name": "Yinyue Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.542767,
+						24.974996
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Beixin Rd./Ln. 121, Sec. 2, Beixin Rd.",
+					"id": 1101,
+					"name": "MRT Qizhang Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.544428,
+						24.974233
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.8, Baoqiao Rd.",
+					"id": 1102,
+					"name": "BeiXin Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.467598,
+						25.022095
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.318, Sec. 1, Wenhua Rd.",
+					"id": 1103,
+					"name": "MRT Xinpu Sta.(Exit.2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.457773,
+						25.023832
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.131, Longquan St.",
+					"id": 1104,
+					"name": "New Taipei City Hospital Banqiao Branch"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.462051,
+						25.014797
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.117, Sec. 1, Wenhua Rd. (opposite)",
+					"id": 1105,
+					"name": "MRT Banqiao Sta.(Exit.3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.475894,
+						25.013087
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Minsheng Rd./Ln. 30, Sec. 1, Minsheng Rd.",
+					"id": 1106,
+					"name": "Minsheng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.464224,
+						25.012374
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Xinfu Rd. (opposite)",
+					"id": 1107,
+					"name": "New Taipei City Hal ( Zinfu Rd.)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.4619,
+						25.013174
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.3, Sec. 2, Xianmin Blvd.",
+					"id": 1108,
+					"name": "MRT Banqiao Sta.(Exit.1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.463387,
+						25.007983
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.5, Shijian Rd. (opposite)",
+					"id": 1109,
+					"name": "Banqiao Land Office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.456308,
+						25.012839
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.6, Zhongzheng Rd.",
+					"id": 1110,
+					"name": "Banqiao District Household Registration Office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.464326,
+						24.997679
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.355, Chongqing Rd.",
+					"id": 1111,
+					"name": "Banqiao Heping Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.487491,
+						25.083741
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.303, Xiwei St. (opposite)",
+					"id": 1112,
+					"name": "Bihua Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.493902,
+						25.081725
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.64, Wuhua St. (opposite)",
+					"id": 1113,
+					"name": "Wufu Village (Wuhua St.)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.499067,
+						25.05732
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhengyi S. Rd./Tong’an E. St.",
+					"id": 1114,
+					"name": "Tong An Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.453766,
+						25.045951
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.31, Sec. 2, Zhonghua Rd. (opposite)",
+					"id": 1115,
+					"name": "Zhonghua Village (Zhonghua Rd. Sec. 2 )"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.453202,
+						25.047855
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Zhonghua Rd/Zizhi St.",
+					"id": 1116,
+					"name": "Zhonghua & Zizhi Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.458776,
+						25.008999
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.31 to No.53, Fuzhong Rd. (opposite)",
+					"id": 1117,
+					"name": "MRT Fuzhong Sta.(Exit.3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.452315,
+						24.99783
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.122-23, Sec. 2, Nanya S. Rd.",
+					"id": 1118,
+					"name": "MRT Far Eastern Hospital Sta.(Exit.2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.444946,
+						25.0372
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 116, Jianzhong St./Aly. 3, Ln. 116, Jianzhong St.",
+					"id": 1119,
+					"name": "Xintai Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.520951,
+						25.014999
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Huanhe E. Rd./Aly. 25, Ln. 75, Zhulin Rd.",
+					"id": 1120,
+					"name": "Shanglin Village (Huanhe E. Rd. Sec. 1 )"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.493774,
+						25.086031
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.258 to No.290, Renyi St.",
+					"id": 1121,
+					"name": "Jinan Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.489894,
+						25.078153
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 4, Ziqiang Rd./Xiwei St.",
+					"id": 1122,
+					"name": "Ziqiang & Xiwei Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.497126,
+						25.070418
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ren’ai St./Ln. 11, Sec. 3, Sanhe Rd.",
+					"id": 1123,
+					"name": "MRT Sanchong Elementary School Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.666869,
+						25.077493
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Xiangzhang Rd.",
+					"id": 1124,
+					"name": "Wudu Railway Station"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.506978,
+						24.990804
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.131 to No.141, Jieyun Rd.",
+					"id": 1125,
+					"name": "MRT Nanshijiao Sta.(Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.462192,
+						25.087989
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.125, Changle Rd. (opposite)",
+					"id": 1126,
+					"name": "Liuti Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.455524,
+						25.001583
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 119, Guixing Rd.",
+					"id": 1127,
+					"name": "New Taipei City Library"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.480315,
+						25.077714
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Yongfu St./Xiazhuwei St.",
+					"id": 1128,
+					"name": "Yong Fu Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.426269,
+						25.045729
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.324, Sec. 2, Mingzhi Rd. (opposite)",
+					"id": 1129,
+					"name": "Mingzhi Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.460134,
+						25.094306
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.615, Sanmin Rd. (opposite)",
+					"id": 1130,
+					"name": "Luchou Sanmin Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.459772,
+						25.043536
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.131 to No.137, Siyuan Rd.",
+					"id": 1131,
+					"name": "Taipei Hospital"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.489751,
+						25.058443
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Chongxin Rd./Chong’an St.",
+					"id": 1132,
+					"name": "Chongxi & Chongan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.516479,
+						24.966775
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Anmin St./Ln. 65, Anmin St.",
+					"id": 1133,
+					"name": "Chaicheng Civic Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.457716,
+						25.046446
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.66, Fule St. (opposite)",
+					"id": 1134,
+					"name": "Si Xian Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.470821,
+						25.020983
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Wanban Rd./Sec. 2, Minsheng Rd.",
+					"id": 1135,
+					"name": "Zhuangjing Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.44323,
+						25.031278
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.161, Qiongtai Rd. (opposite)",
+					"id": 1136,
+					"name": "Feng-Nian Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.457367,
+						25.02853
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Changjiang Rd./Xinhai Rd.",
+					"id": 1137,
+					"name": "Xinhai & Changjiang Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.468559,
+						25.023491
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.250, Sec. 2, Minsheng Rd.",
+					"id": 1138,
+					"name": "MRT Xinpu Sta.(Exit.4)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.459696,
+						24.99643
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Aly. 23, Ln. 49, Guoqing Rd. (opposite)",
+					"id": 1139,
+					"name": "Banqiao Renai Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.431475,
+						25.062345
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.257, Sec. 2, Tailin Rd.",
+					"id": 1140,
+					"name": "Taishan Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.461097,
+						25.010012
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Xianmin Blvd./Minzu Rd.",
+					"id": 1141,
+					"name": "Xianmin Blvd & Minzu Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.427836,
+						25.010795
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.376 to No.376, Min’an W. Rd.",
+					"id": 1142,
+					"name": "Guanghua dongdishi"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.462872,
+						24.991643
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Guangquan Rd./Guanghe St.",
+					"id": 1143,
+					"name": "Guangfu Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.462633,
+						25.025464
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.251 to No.259, Yangming St. (opposite)",
+					"id": 1144,
+					"name": "Banqiao Siwei Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.419008,
+						24.959276
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.74 to No.76, Sec. 4, Zhongyang Rd. (opposite)",
+					"id": 1145,
+					"name": "MRT Dingpu Sta.(Exit.2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.500977,
+						25.073475
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.192, Longbin Rd. (opposite)",
+					"id": 1146,
+					"name": "Longmen & Longbin Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.551813,
+						24.953101
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.149, Sec. 2, Beiyi Rd. (opposite)",
+					"id": 1147,
+					"name": "Qing-Tan Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.440808,
+						24.969399
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Jincheng Rd./Zhongyi Rd.",
+					"id": 1148,
+					"name": "Jincheng & Zhongyi Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.45332,
+						24.991683
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.60, Ln. 245, Sec. 2, Sichuan Rd.",
+					"id": 1149,
+					"name": "Huade Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.666257,
+						25.073682
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.484 to No.488, Zhongxiao E. Rd.",
+					"id": 1150,
+					"name": "Qiaodong Village (Zhongxiao E. Rd.)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.467509,
+						25.018559
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.56, Ln. 188, Sec. 1, Wenhua Rd.",
+					"id": 1151,
+					"name": "Zhong Shan Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.443563,
+						24.972631
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Jincheng Rd./Heping Rd.",
+					"id": 1152,
+					"name": "MRT Tucheng Sta.(Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.457355,
+						24.998003
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.5, Yuandong Rd.",
+					"id": 1153,
+					"name": "Sichuan & Yuandong Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.443237,
+						24.977883
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 12, Yuanlin St. (opposite)",
+					"id": 1154,
+					"name": "Yuanlin Community Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.516809,
+						25.017757
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Huanhe E. Rd./Guangfu St.",
+					"id": 1155,
+					"name": "Zhongzheng Bridge"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.645946,
+						25.089027
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.279, Sec. 2, Xiwan Rd.",
+					"id": 1156,
+					"name": "Beigang Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.538659,
+						24.958605
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.34, Sec. 1, Zhongxing Rd.",
+					"id": 1157,
+					"name": "MRT Xindian Sta."
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.490671,
+						24.992086
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.163, Jinhe Rd.",
+					"id": 1158,
+					"name": "Jinhe Sports Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.433154,
+						25.003383
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.627, Xinshu Rd. (opposite)",
+					"id": 1159,
+					"name": "Xinshu Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.474223,
+						25.006367
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.130, Sec. 3, Zhongshan Rd.",
+					"id": 1160,
+					"name": "Zhonghe Global Mall"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.434939,
+						25.061938
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.26, Ln. 26, Fengjiang Rd.",
+					"id": 1161,
+					"name": "Fengshujiao Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.4912,
+						25.071988
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.37, Sec. 1, Zhongxiao Rd.",
+					"id": 1162,
+					"name": "Houde Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.456476,
+						24.996183
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.6, Sec. 2, Sichuan Rd. (opposite)",
+					"id": 1163,
+					"name": "Banqiao Xinyi Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.458308,
+						25.017755
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.76, Guoguang Rd.",
+					"id": 1164,
+					"name": "Guoguang Village (Guoguang Rd.)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.463596,
+						25.030904
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Minsheng Rd./Sec. 1, Changjiang Rd.",
+					"id": 1165,
+					"name": "Minsheng & Changjiang Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.467525,
+						24.995482
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.296, Minde Rd. (opposite)",
+					"id": 1166,
+					"name": "Huafu Civil Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.446343,
+						24.999329
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "1st Rd./Ln. 153, Sec. 2, Daguan Rd.",
+					"id": 1167,
+					"name": "Fujhou Appropriate House ( He-an 1st. Road )"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.426685,
+						25.027694
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Jianfu Rd./Ln. 49, Jianfu Rd.",
+					"id": 1168,
+					"name": "Jianfu Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.473913,
+						25.093949
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 408, Minzu Rd./Ln. 323, Fuxing Rd.",
+					"id": 1169,
+					"name": "Shuei He Village Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.470454,
+						24.989155
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Jincheng Rd./Yanhe Rd.",
+					"id": 1170,
+					"name": "Jincheng & Yanhe Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.453852,
+						25.019828
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 325, Zhongzheng Rd./Ln. 341, Zhongzheng Rd.",
+					"id": 1171,
+					"name": "Guoguang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.424652,
+						24.992553
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.11, Ln. 6, Houzhan St. (opposite)",
+					"id": 1172,
+					"name": "Shulin Railway Rear Station"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.42636,
+						24.997856
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.59, Qiansui St.",
+					"id": 1173,
+					"name": "Wenlin Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.454211,
+						24.983671
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 195, Yumin Rd.",
+					"id": 1174,
+					"name": "Tucheng Sports Field"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.467415,
+						25.011498
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Xinzhan Rd. (opposite)",
+					"id": 1175,
+					"name": "Banqiao Fude Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.413157,
+						25.005412
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.259, Sec. 2, Bao’an St. (opposite)",
+					"id": 1176,
+					"name": "Guanghua Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.41477,
+						24.986391
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Beiqian St./Ln. 372, Fuxing Rd.",
+					"id": 1177,
+					"name": "Shulin Da'an Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.476004,
+						25.082229
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.8, Sanmin Rd.",
+					"id": 1178,
+					"name": "Sanmin & Zhongshan 1st Rd. Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.431669,
+						25.051762
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.33, Minsheng Rd. (opposite)",
+					"id": 1179,
+					"name": "Yixue Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.487987,
+						25.08984
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ruyi St./Jixian Rd.",
+					"id": 1180,
+					"name": "Natural Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.42635,
+						24.990555
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Banlin Rd./Xibei Rd.",
+					"id": 1181,
+					"name": "Banlin & Xibei Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.472279,
+						25.026542
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhuangjing Rd./Ln. 182, Sec. 2, Wenhua Rd.",
+					"id": 1182,
+					"name": "New Taipei City Art Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.43261,
+						24.965619
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Da’an Rd./Sec. 3, Zhongyang Rd.",
+					"id": 1183,
+					"name": "Da'an & Zhongyang Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.502397,
+						24.990393
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.280, Fuxing Rd.",
+					"id": 1184,
+					"name": "Zhonghe Land Office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.507652,
+						24.980672
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.111, Gongzhuan Rd.",
+					"id": 1185,
+					"name": "Hwa Hsia University of Technology"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.432128,
+						25.055188
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.15, Renyi Rd. (opposite)",
+					"id": 1186,
+					"name": "Tongxing Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.434262,
+						25.055865
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.214, Quanxing Rd. (opposite)",
+					"id": 1187,
+					"name": "Xinwutai  Civil Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.42682,
+						24.986723
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.145, Xikun 2nd St.",
+					"id": 1188,
+					"name": "Xizhou Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.429636,
+						24.993406
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.70, Aly. 212, Sec. 3, Daguan Rd. (opposite)",
+					"id": 1189,
+					"name": "Kunlun Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.449335,
+						24.986923
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.46, Haishan Rd. (opposite)",
+					"id": 1190,
+					"name": "MRT Haishan Sta.(Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.461115,
+						25.065234
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Wugong 2nd Rd./Ln. 50, Wugong 3rd Rd.",
+					"id": 1191,
+					"name": "Xinhua Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.479375,
+						25.017953
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 35, Sec. 2, Sanmin Rd.",
+					"id": 1192,
+					"name": "Runtai Community"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.432713,
+						25.011905
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.499, Xinshu Rd.",
+					"id": 1193,
+					"name": "Xi Sheng Guan"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.52655,
+						24.995821
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Xiulang Rd./Sec. 2, Chenggong Rd.",
+					"id": 1194,
+					"name": "Xiulang & Chenggong Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.45431,
+						25.024903
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.441, Zhongzheng Rd.",
+					"id": 1195,
+					"name": "Banqiao Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.476853,
+						25.021127
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.221, Yongfeng St.",
+					"id": 1196,
+					"name": "Yongfeng  Park Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.427667,
+						25.050479
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.177, Sec. 2, Mingzhi Rd.",
+					"id": 1197,
+					"name": "Yiren civil activity center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.342963,
+						24.951734
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.420, Jianguo Rd.(opposite)",
+					"id": 1198,
+					"name": "Yingge Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.413053,
+						25.02276
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongzheng Rd./Ln. 746, Zhongzheng Rd.",
+					"id": 1199,
+					"name": "MRT Huilong Sta.(Exit 3)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.470987,
+						25.046068
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.515, Sec. 5, Chongxin Rd.",
+					"id": 1200,
+					"name": "MRT Xianse Temple Sta.(Exit.2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.354376,
+						24.955591
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.55, Ren’ai Rd., Yingge Dist.(opposite)",
+					"id": 1201,
+					"name": "Yingge Railway Station(Ren’ai  Rd.)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.347193,
+						24.952761
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Jianguo Rd./Yuying St.",
+					"id": 1202,
+					"name": "Chienkuo & Yuying Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.351035,
+						24.952226
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Jianshanpu Rd./Guoqing St.",
+					"id": 1203,
+					"name": "Yingge ceramics old street"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.442133,
+						25.045676
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.423, Sec. 2, Zhonghuan Rd.(opposite)",
+					"id": 1204,
+					"name": "Litai Village(Zhonghuan Rd. Sec. 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.463395,
+						25.138234
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.108, Minsheng Rd.",
+					"id": 1205,
+					"name": "Chuwei Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.352832,
+						24.949549
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.407, Wenhua Rd.",
+					"id": 1206,
+					"name": "New Taipei City Yingge Ceramics  Museum"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.44545,
+						24.996327
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Heyi Rd./Lequn Rd.",
+					"id": 1207,
+					"name": "Fuzhou Apartment(Lequn Rd.)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.345767,
+						24.94822
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.161, Jianshan Rd.(opposite)",
+					"id": 1208,
+					"name": "Jianshan Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.667002,
+						25.070512
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.84, Jiadong Rd.",
+					"id": 1209,
+					"name": "Chungde-Ciaodong Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.415032,
+						24.983768
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.80-1, Sec. 2, Zhongshan Rd.(opposite)",
+					"id": 1210,
+					"name": "Shulin District Public Health Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.476205,
+						25.079969
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.2, Ln. 73, Xinyi Rd.(oppsite)",
+					"id": 1211,
+					"name": "Si Cian Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.392602,
+						24.970656
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.13, Yude St.(oppsite)",
+					"id": 1212,
+					"name": "Yude Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.423104,
+						24.980335
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.130, Guokai St.(oppsite)",
+					"id": 1213,
+					"name": "Pengfu Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.475345,
+						25.003435
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.120, Minzhi St.(oppsite)",
+					"id": 1214,
+					"name": "Minxiang Art Zone"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.423601,
+						24.983567
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhonghua Rd./Shuzhong 2nd St.(oppsite)",
+					"id": 1215,
+					"name": "Everlight Electronics Co.,Ltd (Shulin Senior High School)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.436227,
+						24.965783
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.11, Chengtian Rd.(oppsite)",
+					"id": 1216,
+					"name": "MRT Yungning Sta.(EXIT 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.450831,
+						25.16509
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.2, Ln. 3, Sec. 1, Zhongzheng E. Rd.(oppsite)",
+					"id": 1217,
+					"name": "Ganzhen Civil Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.421371,
+						24.991853
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.35, Shude St.(oppsite)",
+					"id": 1218,
+					"name": "Changshou Parent-child Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.444332,
+						25.185313
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.2, Ln. 189, Sec. 2, Zhongshan N. Rd.(oppsite)",
+					"id": 1219,
+					"name": "Xinshi Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.349704,
+						24.957195
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.150, Zhongshan Rd.",
+					"id": 1220,
+					"name": "New Taipei City Library Yingge Branch"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.43567,
+						25.071515
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.2, Mingde Rd.(oppsite)",
+					"id": 1221,
+					"name": "De-Yin Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.444742,
+						25.180345
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Zhongshan N. Rd./Xinchun St.",
+					"id": 1222,
+					"name": "Zhongshan North & Xinchun Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.447874,
+						25.178512
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.116, Beixin Rd.(oppsite)",
+					"id": 1223,
+					"name": "Zhengde Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.458595,
+						24.984102
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.266, Sec. 2, Jincheng Rd.",
+					"id": 1224,
+					"name": "Jincheng Parking Lot"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.476007,
+						25.05119
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.77, Wuguwang N. St.",
+					"id": 1225,
+					"name": "Xianse Temple"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.468258,
+						25.009147
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.23, Haishan Rd.(oppsite)",
+					"id": 1226,
+					"name": "Banqiao First Stadium"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.500103,
+						25.060339
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Guangxing St./Wenhua S. Rd.",
+					"id": 1227,
+					"name": "Guangxing Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.515687,
+						24.975317
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.67, Anxing Rd.(oppsite)",
+					"id": 1228,
+					"name": "Anhe Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.504443,
+						24.992249
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Jing’an Rd./Bannan Rd.",
+					"id": 1229,
+					"name": "Jing’an / Bannan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.450011,
+						25.0323
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Qionglin Rd.",
+					"id": 1230,
+					"name": "Crescent Bridge"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.49045,
+						25.065295
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.74, Minsheng St.(oppsite)",
+					"id": 1231,
+					"name": "Sioude Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.499565,
+						25.005933
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Aly. 7, Ln. 90, Fuxiang Rd.(oppsite)",
+					"id": 1232,
+					"name": "Fuxiang Village (Zhonghe Ditch)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.438708,
+						25.189448
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.125 ~ No.219, Sec. 1, Binhai Rd.",
+					"id": 1233,
+					"name": "Binhai & Yishan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.456728,
+						25.082935
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.334, Sec. 2, Yong’an S. Rd.",
+					"id": 1234,
+					"name": "Yamugang Pumping Station"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.444183,
+						25.168826
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.6, Ln. 73, Gongming St.",
+					"id": 1235,
+					"name": "MRT Tamsui Station"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.509988,
+						24.961147
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.26 ~ No.36, Ancheng St.(oppsite)",
+					"id": 1236,
+					"name": "Ancheng & Ande Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.443261,
+						25.186496
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.2, Ln. 381, Sec. 2, Zhongshan N. Rd.",
+					"id": 1237,
+					"name": "Tamsui Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.460112,
+						25.137658
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.105 ~ No.115, Minquan Rd.",
+					"id": 1238,
+					"name": "MRT Zhuwei Station"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.498484,
+						25.074815
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Gongyuan St. / Renfu St.",
+					"id": 1239,
+					"name": "Longmen Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.443505,
+						25.188887
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Binhai Rd. / Sec. 2, Zhongshan N. Rd.",
+					"id": 1240,
+					"name": "Binhai & Chungshan North Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.462228,
+						25.078599
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.150, Sec. 2, Yong’an S. Rd.",
+					"id": 1241,
+					"name": "Yong-an Library"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.431485,
+						25.000894
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.251, Shuxin Rd.(oppsite)",
+					"id": 1242,
+					"name": "XiSheng Square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.369158,
+						24.934187
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.17, Zhongshan Rd.",
+					"id": 1243,
+					"name": "Sanxia District Office(Sanxia Old Street)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.374258,
+						25.077118
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.559, Sec. 2, Ren’ai Rd.",
+					"id": 1244,
+					"name": "Ren-ai & Wenhua 2nd Rd. Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.43288,
+						24.993901
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.3, Ln. 133, Sec. 3, Daguan Rd.(oppsite)",
+					"id": 1245,
+					"name": "Kunlun Square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.484304,
+						25.076133
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.135, Ln. 139, Chelutou St.(oppsite)",
+					"id": 1246,
+					"name": "YongSheng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.477694,
+						25.085621
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.22, Ln. 319, Xinyi Rd.(side)",
+					"id": 1247,
+					"name": "Lu Jiang square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.494048,
+						25.069661
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.21, Ln. 149, Anqing St.(oppsite)",
+					"id": 1248,
+					"name": "Liuzhang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.385587,
+						25.079592
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.250-1, Zhongshan Rd.",
+					"id": 1249,
+					"name": "Chungshan & Chalin Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.37326,
+						24.945553
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Xueqin Rd. / Daxue Rd. intersection",
+					"id": 1250,
+					"name": "National Taipei University(Sanxia Campus)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.388181,
+						25.076742
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.378, Sec. 1, Ren’ai Rd.",
+					"id": 1251,
+					"name": "Linkou District Office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.376882,
+						25.070428
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Liyuan 1st St. / Ln. 11, Liyuan 1st St. intersection",
+					"id": 1252,
+					"name": "Xinliyuan Community"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.417694,
+						25.02594
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.879-16, Zhongzheng Rd.",
+					"id": 1253,
+					"name": "Zhongzheng & Fuguo Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.416844,
+						24.981146
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 91, Dongrong St.(Side)",
+					"id": 1254,
+					"name": "Datong Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.446741,
+						25.094784
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.165, Xiyun Rd.",
+					"id": 1255,
+					"name": "New Taipei City Library Wugu-Chenggong Branch"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.468345,
+						24.999098
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.188, Minde Rd.",
+					"id": 1256,
+					"name": "Minde Parking Lot"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.367761,
+						25.069123
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.59, Gongyuan Rd.",
+					"id": 1257,
+					"name": "LiLin Market"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.408605,
+						24.980236
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Zhongshan Rd. / Dongxing St. intersection",
+					"id": 1258,
+					"name": "Shulin South Station"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.334639,
+						24.939095
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.235-237, Zhongzheng 3rd Rd.(oppsite)",
+					"id": 1259,
+					"name": "New Taipei Municipal Yinggle Vocational High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.444423,
+						25.055969
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongping Rd./ Sec. 2, Ronghua Rd. intersection",
+					"id": 1260,
+					"name": "Xinzhuang Joint Office Tower, Executive Yuan"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.386183,
+						24.950576
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.128, Sec. 3, Jiayuan Rd.",
+					"id": 1261,
+					"name": "5 Villages in Ganyuan Joint Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.472513,
+						24.999132
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.181, Juguang Rd.(oppsite)",
+					"id": 1262,
+					"name": "Zhonghe Ziqiang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.378464,
+						25.083156
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongshan Rd. / Fugui Rd. intersection",
+					"id": 1263,
+					"name": "Fugui Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.397208,
+						25.078126
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.3, Ziqiang 3rd St.",
+					"id": 1264,
+					"name": "Linkou Ziqiang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.339645,
+						24.956661
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.36-38, Aly. 96, Ln. 182, Yingtao Rd.(oppsite)",
+					"id": 1265,
+					"name": "Yongchang Village Children Park (No.1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.361962,
+						25.06597
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Wenhua 3rd Rd. / Bade Rd. intersection",
+					"id": 1266,
+					"name": "MRT Linkou Sta. (Exit 1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.652549,
+						25.059779
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.62, Nanxing Rd.",
+					"id": 1267,
+					"name": "Nanxing Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.36234,
+						25.073427
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongxiao 1st Rd. / Ln. 61, Minzu Rd. intersection",
+					"id": 1268,
+					"name": "Liyan Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.432281,
+						24.99006
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.35, Ln. 131, Sec. 2, Duxing Rd.",
+					"id": 1269,
+					"name": "Xibei Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.411701,
+						24.952762
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.285, Sec. 4, Zhongyang Rd.",
+					"id": 1270,
+					"name": "Dingxin-Zutian Civic Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.421928,
+						25.034961
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.353, Sec. 3, Mingzhi Rd.",
+					"id": 1271,
+					"name": "Guihe Civil Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.414421,
+						24.956343
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.205, Sec. 4, Zhongyang Rd.",
+					"id": 1272,
+					"name": "Dingpu Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.376064,
+						24.928231
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.96-100, Guangming Rd.(oppsite)",
+					"id": 1273,
+					"name": "Chiaohsi Office of Sanxia District"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.389307,
+						25.080533
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.77, Linkou Rd.(oppsite)",
+					"id": 1274,
+					"name": "Linkou Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.358924,
+						25.074035
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.154, Nanshi 2nd St.(Side)",
+					"id": 1275,
+					"name": "Nanshih Civil Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.459751,
+						24.977837
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Ln. 240, Sec. 1, Mingde Rd.",
+					"id": 1276,
+					"name": "Qingshan Square"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.377001,
+						25.07415
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Wenhua 1st Rd./Sec. 2, Ren’ai Rd.(intersection)",
+					"id": 1277,
+					"name": "Linkou Community Sports Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.452792,
+						25.036075
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 214, Xinzhuang Rd.",
+					"id": 1278,
+					"name": "MRT Xinzhuang Sta. (Exit 2)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.425183,
+						25.00915
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Junying St./Junbao Rd.(intersecion)",
+					"id": 1279,
+					"name": "Junying & Junbao Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.448105,
+						25.094701
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Chengtai Rd./Gongyuan Rd.(intersecion)",
+					"id": 1280,
+					"name": "Zhouziyang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.378671,
+						24.945099
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Xuecheng Rd./Dayi Rd.(intersecion)",
+					"id": 1281,
+					"name": "Xuecheng & Dayi Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.460856,
+						25.039365
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Zhongzheng Rd./Siyuan Rd.(intersection)",
+					"id": 1282,
+					"name": "MRT Touqianzhuang Sta.(Exit.1)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.438806,
+						25.172485
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.57, Wenhua Rd.(Basement 1)",
+					"id": 1283,
+					"name": "Wenhua Motorcycle Parking Lot"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.452963,
+						25.105052
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 3, Chengtai Rd./Chengzhou 8th Rd.(intersecion)",
+					"id": 1284,
+					"name": "Chengde Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.372687,
+						25.081673
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.101, Minquan Rd.",
+					"id": 1285,
+					"name": "Touhou Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.465481,
+						24.986691
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.19-30, Sec. 3, Jincheng Rd.(Side)",
+					"id": 1286,
+					"name": "Jincheng & Lide Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.363553,
+						24.938912
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.372, Fuxing Rd.(oppsite)",
+					"id": 1287,
+					"name": "En Chu Kong Hospital"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.500533,
+						24.998558
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.634-2, Jingping Rd.",
+					"id": 1288,
+					"name": "Zhonghe District Office"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.624493,
+						25.078202
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.8, Zhong 3rd St.",
+					"id": 1289,
+					"name": "Jhongshan Civil Activity Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.478162,
+						25.074629
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.6-1, Ln. 197, Yongfu St.",
+					"id": 1290,
+					"name": "San chong Yongfeng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.448,
+						25.007502
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.51, Ln. 197, Sec. 1, Daguan Rd.",
+					"id": 1291,
+					"name": "National Taiwan University of Arts"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.452459,
+						25.040766
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ln. 136, Sec. 1, Zhonghua Rd.(oppsite)",
+					"id": 1292,
+					"name": "Xinzhuang Gymnasium"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.517701,
+						25.011232
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.123, Guoguang Rd.",
+					"id": 1293,
+					"name": "Yonghe Cardinal Tien Hospital"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.407135,
+						25.016405
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.83-89, Sanfu St.(oppsite)",
+					"id": 1294,
+					"name": "Sanduo Elementary School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.482236,
+						25.082273
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 2, Yong’an N. Rd./ Ln. 35, Sec. 2, Yong’an N. Rd.(intersection)",
+					"id": 1295,
+					"name": "Yongan Children's Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.47823,
+						24.9937
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.460, Liancheng Rd.",
+					"id": 1296,
+					"name": "New Taipei Municipal Zhonghe Senior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.36948,
+						25.072864
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Sec. 1, Wenhua 2nd Rd./ Ln. 309, Sec. 1, Wenhua 2nd Rd.(intersecion)",
+					"id": 1297,
+					"name": "Fulun Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.496647,
+						24.996867
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Anbang St./Liansheng St.(intersection)",
+					"id": 1298,
+					"name": "Anbang Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.367223,
+						25.076441
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Ren’ai 2nd Rd./ Minzu Rd.(intersection)",
+					"id": 1299,
+					"name": "Lide Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.466455,
+						25.012614
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.161, Sec. 1, Zhongshan Rd.",
+					"id": 1300,
+					"name": "New Taipei City Hall ( Xinzhan Rd)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.465444,
+						24.982756
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.72, Sec. 1, Mingde Rd.",
+					"id": 1301,
+					"name": "Qing Shui Senior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.463735,
+						25.015519
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "Xinzhan Rd. / Zhanqian Rd.(intersection)",
+					"id": 1302,
+					"name": "Banqiao Station"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.422847,
+						25.004186
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.188-6,Zhongzheng Rd.,Shulin Dist.",
+					"id": 1303,
+					"name": "Shulin  Civil  Sports Center"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.436484,
+						25.033025
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.510-1, Zhongzheng Rd., Xinzhuang Dist.",
+					"id": 1304,
+					"name": "MRT Fu Jen University Sta.(Exit.4)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.429556,
+						25.020774
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.48 Min’an E. Rd., Xinzhuang Dist.",
+					"id": 1305,
+					"name": "Min’an E.& Minquan Intersection"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.471327,
+						25.05597
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.10, Ln. 175,Zhongxing N. St., Sanchong Dist.",
+					"id": 1306,
+					"name": "Zhongxing N. St. 175 Ln"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.416497,
+						25.021447
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.72, Long’an Rd., Xinzhuang Dist.(oppsite)",
+					"id": 1312,
+					"name": "Longfeng Park"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.413402,
+						25.030186
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.312, Sec. 7, New Taipei Blvd., Xinzhuang Dist",
+					"id": 1313,
+					"name": "Yijibang"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.416091,
+						25.000868
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.6, Sec. 2, Bao’an St., Shulin Dist.(square)",
+					"id": 1321,
+					"name": "Shulin industrial zone"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.342089,
+						24.9443
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.1, Guozhong St., Yingge Dist(sidewalk)",
+					"id": 1323,
+					"name": "Municipal Jianshan Junior High School"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.616895,
+						25.002157
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.45, Wenhua St., Shenkeng Dist(park)",
+					"id": 1327,
+					"name": "Shenkeng District Office(Shenkeng Old Street)"
+				},
+				"properties": {},
+				"type": "Feature"
+			},
+			{
+				"geometry": {
+					"coordinates": [
+						121.601866,
+						25.003916
+					],
+					"type": "Point"
+				},
+				"proerties": {
+					"address": "No.170, Sec. 3, Beishen Rd., Shenkeng Dist",
+					"id": 1328,
+					"name": "Tungnan University"
+				},
+				"properties": {},
+				"type": "Feature"
+			}
+		],
+		"type": "youbikeSites"
+	};
+
+/***/ },
+/* 208 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__(209);
+
+/***/ },
+/* 209 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var _assign = __webpack_require__(5);
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var React = __webpack_require__(3);
+
+	var ReactTransitionGroup = __webpack_require__(210);
+	var ReactCSSTransitionGroupChild = __webpack_require__(218);
+
+	function createTransitionTimeoutPropValidator(transitionType) {
+	  var timeoutPropName = 'transition' + transitionType + 'Timeout';
+	  var enabledPropName = 'transition' + transitionType;
+
+	  return function (props) {
+	    // If the transition is enabled
+	    if (props[enabledPropName]) {
+	      // If no timeout duration is provided
+	      if (props[timeoutPropName] == null) {
+	        return new Error(timeoutPropName + ' wasn\'t supplied to ReactCSSTransitionGroup: ' + 'this can cause unreliable animations and won\'t be supported in ' + 'a future version of React. See ' + 'https://fb.me/react-animation-transition-group-timeout for more ' + 'information.');
+
+	        // If the duration isn't a number
+	      } else if (typeof props[timeoutPropName] !== 'number') {
+	        return new Error(timeoutPropName + ' must be a number (in milliseconds)');
+	      }
+	    }
+	  };
+	}
+
+	/**
+	 * An easy way to perform CSS transitions and animations when a React component
+	 * enters or leaves the DOM.
+	 * See https://facebook.github.io/react/docs/animation.html#high-level-api-reactcsstransitiongroup
+	 */
+
+	var ReactCSSTransitionGroup = function (_React$Component) {
+	  _inherits(ReactCSSTransitionGroup, _React$Component);
+
+	  function ReactCSSTransitionGroup() {
+	    var _temp, _this, _ret;
+
+	    _classCallCheck(this, ReactCSSTransitionGroup);
+
+	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	      args[_key] = arguments[_key];
+	    }
+
+	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, _React$Component.call.apply(_React$Component, [this].concat(args))), _this), _this._wrapChild = function (child) {
+	      // We need to provide this childFactory so that
+	      // ReactCSSTransitionGroupChild can receive updates to name, enter, and
+	      // leave while it is leaving.
+	      return React.createElement(ReactCSSTransitionGroupChild, {
+	        name: _this.props.transitionName,
+	        appear: _this.props.transitionAppear,
+	        enter: _this.props.transitionEnter,
+	        leave: _this.props.transitionLeave,
+	        appearTimeout: _this.props.transitionAppearTimeout,
+	        enterTimeout: _this.props.transitionEnterTimeout,
+	        leaveTimeout: _this.props.transitionLeaveTimeout
+	      }, child);
+	    }, _temp), _possibleConstructorReturn(_this, _ret);
+	  }
+
+	  ReactCSSTransitionGroup.prototype.render = function render() {
+	    return React.createElement(ReactTransitionGroup, _assign({}, this.props, { childFactory: this._wrapChild }));
+	  };
+
+	  return ReactCSSTransitionGroup;
+	}(React.Component);
+
+	ReactCSSTransitionGroup.displayName = 'ReactCSSTransitionGroup';
+	ReactCSSTransitionGroup.propTypes = {
+	  transitionName: ReactCSSTransitionGroupChild.propTypes.name,
+
+	  transitionAppear: React.PropTypes.bool,
+	  transitionEnter: React.PropTypes.bool,
+	  transitionLeave: React.PropTypes.bool,
+	  transitionAppearTimeout: createTransitionTimeoutPropValidator('Appear'),
+	  transitionEnterTimeout: createTransitionTimeoutPropValidator('Enter'),
+	  transitionLeaveTimeout: createTransitionTimeoutPropValidator('Leave')
+	};
+	ReactCSSTransitionGroup.defaultProps = {
+	  transitionAppear: false,
+	  transitionEnter: true,
+	  transitionLeave: true
+	};
+
+
+	module.exports = ReactCSSTransitionGroup;
+
+/***/ },
+/* 210 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var _assign = __webpack_require__(5);
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var React = __webpack_require__(3);
+	var ReactAddonsDOMDependencies = __webpack_require__(211);
+	var ReactTransitionChildMapping = __webpack_require__(216);
+
+	var emptyFunction = __webpack_require__(13);
+
+	/**
+	 * A basis for animations. When children are declaratively added or removed,
+	 * special lifecycle hooks are called.
+	 * See https://facebook.github.io/react/docs/animation.html#low-level-api-reacttransitiongroup
+	 */
+
+	var ReactTransitionGroup = function (_React$Component) {
+	  _inherits(ReactTransitionGroup, _React$Component);
+
+	  function ReactTransitionGroup() {
+	    var _temp, _this, _ret;
+
+	    _classCallCheck(this, ReactTransitionGroup);
+
+	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	      args[_key] = arguments[_key];
+	    }
+
+	    return _ret = (_temp = (_this = _possibleConstructorReturn(this, _React$Component.call.apply(_React$Component, [this].concat(args))), _this), _this.state = {
+	      // TODO: can we get useful debug information to show at this point?
+	      children: ReactTransitionChildMapping.getChildMapping(_this.props.children)
+	    }, _this.performAppear = function (key) {
+	      _this.currentlyTransitioningKeys[key] = true;
+
+	      var component = _this.refs[key];
+
+	      if (component.componentWillAppear) {
+	        component.componentWillAppear(_this._handleDoneAppearing.bind(_this, key));
+	      } else {
+	        _this._handleDoneAppearing(key);
+	      }
+	    }, _this._handleDoneAppearing = function (key) {
+	      var component = _this.refs[key];
+	      if (component.componentDidAppear) {
+	        component.componentDidAppear();
+	      }
+
+	      delete _this.currentlyTransitioningKeys[key];
+
+	      var currentChildMapping;
+	      if (process.env.NODE_ENV !== 'production') {
+	        currentChildMapping = ReactTransitionChildMapping.getChildMapping(_this.props.children, ReactAddonsDOMDependencies.getReactInstanceMap().get(_this)._debugID);
+	      } else {
+	        currentChildMapping = ReactTransitionChildMapping.getChildMapping(_this.props.children);
+	      }
+
+	      if (!currentChildMapping || !currentChildMapping.hasOwnProperty(key)) {
+	        // This was removed before it had fully appeared. Remove it.
+	        _this.performLeave(key);
+	      }
+	    }, _this.performEnter = function (key) {
+	      _this.currentlyTransitioningKeys[key] = true;
+
+	      var component = _this.refs[key];
+
+	      if (component.componentWillEnter) {
+	        component.componentWillEnter(_this._handleDoneEntering.bind(_this, key));
+	      } else {
+	        _this._handleDoneEntering(key);
+	      }
+	    }, _this._handleDoneEntering = function (key) {
+	      var component = _this.refs[key];
+	      if (component.componentDidEnter) {
+	        component.componentDidEnter();
+	      }
+
+	      delete _this.currentlyTransitioningKeys[key];
+
+	      var currentChildMapping;
+	      if (process.env.NODE_ENV !== 'production') {
+	        currentChildMapping = ReactTransitionChildMapping.getChildMapping(_this.props.children, ReactAddonsDOMDependencies.getReactInstanceMap().get(_this)._debugID);
+	      } else {
+	        currentChildMapping = ReactTransitionChildMapping.getChildMapping(_this.props.children);
+	      }
+
+	      if (!currentChildMapping || !currentChildMapping.hasOwnProperty(key)) {
+	        // This was removed before it had fully entered. Remove it.
+	        _this.performLeave(key);
+	      }
+	    }, _this.performLeave = function (key) {
+	      _this.currentlyTransitioningKeys[key] = true;
+
+	      var component = _this.refs[key];
+	      if (component.componentWillLeave) {
+	        component.componentWillLeave(_this._handleDoneLeaving.bind(_this, key));
+	      } else {
+	        // Note that this is somewhat dangerous b/c it calls setState()
+	        // again, effectively mutating the component before all the work
+	        // is done.
+	        _this._handleDoneLeaving(key);
+	      }
+	    }, _this._handleDoneLeaving = function (key) {
+	      var component = _this.refs[key];
+
+	      if (component.componentDidLeave) {
+	        component.componentDidLeave();
+	      }
+
+	      delete _this.currentlyTransitioningKeys[key];
+
+	      var currentChildMapping;
+	      if (process.env.NODE_ENV !== 'production') {
+	        currentChildMapping = ReactTransitionChildMapping.getChildMapping(_this.props.children, ReactAddonsDOMDependencies.getReactInstanceMap().get(_this)._debugID);
+	      } else {
+	        currentChildMapping = ReactTransitionChildMapping.getChildMapping(_this.props.children);
+	      }
+
+	      if (currentChildMapping && currentChildMapping.hasOwnProperty(key)) {
+	        // This entered again before it fully left. Add it again.
+	        _this.performEnter(key);
+	      } else {
+	        _this.setState(function (state) {
+	          var newChildren = _assign({}, state.children);
+	          delete newChildren[key];
+	          return { children: newChildren };
+	        });
+	      }
+	    }, _temp), _possibleConstructorReturn(_this, _ret);
+	  }
+
+	  ReactTransitionGroup.prototype.componentWillMount = function componentWillMount() {
+	    this.currentlyTransitioningKeys = {};
+	    this.keysToEnter = [];
+	    this.keysToLeave = [];
+	  };
+
+	  ReactTransitionGroup.prototype.componentDidMount = function componentDidMount() {
+	    var initialChildMapping = this.state.children;
+	    for (var key in initialChildMapping) {
+	      if (initialChildMapping[key]) {
+	        this.performAppear(key);
+	      }
+	    }
+	  };
+
+	  ReactTransitionGroup.prototype.componentWillReceiveProps = function componentWillReceiveProps(nextProps) {
+	    var nextChildMapping;
+	    if (process.env.NODE_ENV !== 'production') {
+	      nextChildMapping = ReactTransitionChildMapping.getChildMapping(nextProps.children, ReactAddonsDOMDependencies.getReactInstanceMap().get(this)._debugID);
+	    } else {
+	      nextChildMapping = ReactTransitionChildMapping.getChildMapping(nextProps.children);
+	    }
+	    var prevChildMapping = this.state.children;
+
+	    this.setState({
+	      children: ReactTransitionChildMapping.mergeChildMappings(prevChildMapping, nextChildMapping)
+	    });
+
+	    var key;
+
+	    for (key in nextChildMapping) {
+	      var hasPrev = prevChildMapping && prevChildMapping.hasOwnProperty(key);
+	      if (nextChildMapping[key] && !hasPrev && !this.currentlyTransitioningKeys[key]) {
+	        this.keysToEnter.push(key);
+	      }
+	    }
+
+	    for (key in prevChildMapping) {
+	      var hasNext = nextChildMapping && nextChildMapping.hasOwnProperty(key);
+	      if (prevChildMapping[key] && !hasNext && !this.currentlyTransitioningKeys[key]) {
+	        this.keysToLeave.push(key);
+	      }
+	    }
+
+	    // If we want to someday check for reordering, we could do it here.
+	  };
+
+	  ReactTransitionGroup.prototype.componentDidUpdate = function componentDidUpdate() {
+	    var keysToEnter = this.keysToEnter;
+	    this.keysToEnter = [];
+	    keysToEnter.forEach(this.performEnter);
+
+	    var keysToLeave = this.keysToLeave;
+	    this.keysToLeave = [];
+	    keysToLeave.forEach(this.performLeave);
+	  };
+
+	  ReactTransitionGroup.prototype.render = function render() {
+	    // TODO: we could get rid of the need for the wrapper node
+	    // by cloning a single child
+	    var childrenToRender = [];
+	    for (var key in this.state.children) {
+	      var child = this.state.children[key];
+	      if (child) {
+	        // You may need to apply reactive updates to a child as it is leaving.
+	        // The normal React way to do it won't work since the child will have
+	        // already been removed. In case you need this behavior you can provide
+	        // a childFactory function to wrap every child, even the ones that are
+	        // leaving.
+	        childrenToRender.push(React.cloneElement(this.props.childFactory(child), { ref: key, key: key }));
+	      }
+	    }
+
+	    // Do not forward ReactTransitionGroup props to primitive DOM nodes
+	    var props = _assign({}, this.props);
+	    delete props.transitionLeave;
+	    delete props.transitionName;
+	    delete props.transitionAppear;
+	    delete props.transitionEnter;
+	    delete props.childFactory;
+	    delete props.transitionLeaveTimeout;
+	    delete props.transitionEnterTimeout;
+	    delete props.transitionAppearTimeout;
+	    delete props.component;
+
+	    return React.createElement(this.props.component, props, childrenToRender);
+	  };
+
+	  return ReactTransitionGroup;
+	}(React.Component);
+
+	ReactTransitionGroup.displayName = 'ReactTransitionGroup';
+	ReactTransitionGroup.propTypes = {
+	  component: React.PropTypes.any,
+	  childFactory: React.PropTypes.func
+	};
+	ReactTransitionGroup.defaultProps = {
+	  component: 'span',
+	  childFactory: emptyFunction.thatReturnsArgument
+	};
+
+
+	module.exports = ReactTransitionGroup;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 211 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var ReactDOM = __webpack_require__(34);
+	var ReactInstanceMap = __webpack_require__(121);
+
+	exports.getReactDOM = function () {
+	  return ReactDOM;
+	};
+
+	exports.getReactInstanceMap = function () {
+	  return ReactInstanceMap;
+	};
+
+	if (process.env.NODE_ENV !== 'production') {
+	  var ReactPerf = __webpack_require__(212);
+	  var ReactTestUtils = __webpack_require__(213);
+
+	  exports.getReactPerf = function () {
+	    return ReactPerf;
+	  };
+
+	  exports.getReactTestUtils = function () {
+	    return ReactTestUtils;
+	  };
+	}
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 212 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2016-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * 
+	 */
+
+	'use strict';
+
+	var _assign = __webpack_require__(54);
+
+	var _extends = _assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var ReactDebugTool = __webpack_require__(68);
+	var warning = __webpack_require__(48);
+	var alreadyWarned = false;
+
+	function roundFloat(val) {
+	  var base = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 2;
+
+	  var n = Math.pow(10, base);
+	  return Math.floor(val * n) / n;
+	}
+
+	// Flow type definition of console.table is too strict right now, see
+	// https://github.com/facebook/flow/pull/2353 for updates
+	function consoleTable(table) {
+	  console.table(table);
+	}
+
+	function warnInProduction() {
+	  if (alreadyWarned) {
+	    return;
+	  }
+	  alreadyWarned = true;
+	  if (typeof console !== 'undefined') {
+	    console.error('ReactPerf is not supported in the production builds of React. ' + 'To collect measurements, please use the development build of React instead.');
+	  }
+	}
+
+	function getLastMeasurements() {
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return [];
+	  }
+
+	  return ReactDebugTool.getFlushHistory();
+	}
+
+	function getExclusive() {
+	  var flushHistory = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : getLastMeasurements();
+
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return [];
+	  }
+
+	  var aggregatedStats = {};
+	  var affectedIDs = {};
+
+	  function updateAggregatedStats(treeSnapshot, instanceID, timerType, applyUpdate) {
+	    var displayName = treeSnapshot[instanceID].displayName;
+
+	    var key = displayName;
+	    var stats = aggregatedStats[key];
+	    if (!stats) {
+	      affectedIDs[key] = {};
+	      stats = aggregatedStats[key] = {
+	        key: key,
+	        instanceCount: 0,
+	        counts: {},
+	        durations: {},
+	        totalDuration: 0
+	      };
+	    }
+	    if (!stats.durations[timerType]) {
+	      stats.durations[timerType] = 0;
+	    }
+	    if (!stats.counts[timerType]) {
+	      stats.counts[timerType] = 0;
+	    }
+	    affectedIDs[key][instanceID] = true;
+	    applyUpdate(stats);
+	  }
+
+	  flushHistory.forEach(function (flush) {
+	    var measurements = flush.measurements,
+	        treeSnapshot = flush.treeSnapshot;
+
+	    measurements.forEach(function (measurement) {
+	      var duration = measurement.duration,
+	          instanceID = measurement.instanceID,
+	          timerType = measurement.timerType;
+
+	      updateAggregatedStats(treeSnapshot, instanceID, timerType, function (stats) {
+	        stats.totalDuration += duration;
+	        stats.durations[timerType] += duration;
+	        stats.counts[timerType]++;
+	      });
+	    });
+	  });
+
+	  return Object.keys(aggregatedStats).map(function (key) {
+	    return _extends({}, aggregatedStats[key], {
+	      instanceCount: Object.keys(affectedIDs[key]).length
+	    });
+	  }).sort(function (a, b) {
+	    return b.totalDuration - a.totalDuration;
+	  });
+	}
+
+	function getInclusive() {
+	  var flushHistory = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : getLastMeasurements();
+
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return [];
+	  }
+
+	  var aggregatedStats = {};
+	  var affectedIDs = {};
+
+	  function updateAggregatedStats(treeSnapshot, instanceID, applyUpdate) {
+	    var _treeSnapshot$instanc = treeSnapshot[instanceID],
+	        displayName = _treeSnapshot$instanc.displayName,
+	        ownerID = _treeSnapshot$instanc.ownerID;
+
+	    var owner = treeSnapshot[ownerID];
+	    var key = (owner ? owner.displayName + ' > ' : '') + displayName;
+	    var stats = aggregatedStats[key];
+	    if (!stats) {
+	      affectedIDs[key] = {};
+	      stats = aggregatedStats[key] = {
+	        key: key,
+	        instanceCount: 0,
+	        inclusiveRenderDuration: 0,
+	        renderCount: 0
+	      };
+	    }
+	    affectedIDs[key][instanceID] = true;
+	    applyUpdate(stats);
+	  }
+
+	  var isCompositeByID = {};
+	  flushHistory.forEach(function (flush) {
+	    var measurements = flush.measurements;
+
+	    measurements.forEach(function (measurement) {
+	      var instanceID = measurement.instanceID,
+	          timerType = measurement.timerType;
+
+	      if (timerType !== 'render') {
+	        return;
+	      }
+	      isCompositeByID[instanceID] = true;
+	    });
+	  });
+
+	  flushHistory.forEach(function (flush) {
+	    var measurements = flush.measurements,
+	        treeSnapshot = flush.treeSnapshot;
+
+	    measurements.forEach(function (measurement) {
+	      var duration = measurement.duration,
+	          instanceID = measurement.instanceID,
+	          timerType = measurement.timerType;
+
+	      if (timerType !== 'render') {
+	        return;
+	      }
+	      updateAggregatedStats(treeSnapshot, instanceID, function (stats) {
+	        stats.renderCount++;
+	      });
+	      var nextParentID = instanceID;
+	      while (nextParentID) {
+	        // As we traverse parents, only count inclusive time towards composites.
+	        // We know something is a composite if its render() was called.
+	        if (isCompositeByID[nextParentID]) {
+	          updateAggregatedStats(treeSnapshot, nextParentID, function (stats) {
+	            stats.inclusiveRenderDuration += duration;
+	          });
+	        }
+	        nextParentID = treeSnapshot[nextParentID].parentID;
+	      }
+	    });
+	  });
+
+	  return Object.keys(aggregatedStats).map(function (key) {
+	    return _extends({}, aggregatedStats[key], {
+	      instanceCount: Object.keys(affectedIDs[key]).length
+	    });
+	  }).sort(function (a, b) {
+	    return b.inclusiveRenderDuration - a.inclusiveRenderDuration;
+	  });
+	}
+
+	function getWasted() {
+	  var flushHistory = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : getLastMeasurements();
+
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return [];
+	  }
+
+	  var aggregatedStats = {};
+	  var affectedIDs = {};
+
+	  function updateAggregatedStats(treeSnapshot, instanceID, applyUpdate) {
+	    var _treeSnapshot$instanc2 = treeSnapshot[instanceID],
+	        displayName = _treeSnapshot$instanc2.displayName,
+	        ownerID = _treeSnapshot$instanc2.ownerID;
+
+	    var owner = treeSnapshot[ownerID];
+	    var key = (owner ? owner.displayName + ' > ' : '') + displayName;
+	    var stats = aggregatedStats[key];
+	    if (!stats) {
+	      affectedIDs[key] = {};
+	      stats = aggregatedStats[key] = {
+	        key: key,
+	        instanceCount: 0,
+	        inclusiveRenderDuration: 0,
+	        renderCount: 0
+	      };
+	    }
+	    affectedIDs[key][instanceID] = true;
+	    applyUpdate(stats);
+	  }
+
+	  flushHistory.forEach(function (flush) {
+	    var measurements = flush.measurements,
+	        treeSnapshot = flush.treeSnapshot,
+	        operations = flush.operations;
+
+	    var isDefinitelyNotWastedByID = {};
+
+	    // Find host components associated with an operation in this batch.
+	    // Mark all components in their parent tree as definitely not wasted.
+	    operations.forEach(function (operation) {
+	      var instanceID = operation.instanceID;
+
+	      var nextParentID = instanceID;
+	      while (nextParentID) {
+	        isDefinitelyNotWastedByID[nextParentID] = true;
+	        nextParentID = treeSnapshot[nextParentID].parentID;
+	      }
+	    });
+
+	    // Find composite components that rendered in this batch.
+	    // These are potential candidates for being wasted renders.
+	    var renderedCompositeIDs = {};
+	    measurements.forEach(function (measurement) {
+	      var instanceID = measurement.instanceID,
+	          timerType = measurement.timerType;
+
+	      if (timerType !== 'render') {
+	        return;
+	      }
+	      renderedCompositeIDs[instanceID] = true;
+	    });
+
+	    measurements.forEach(function (measurement) {
+	      var duration = measurement.duration,
+	          instanceID = measurement.instanceID,
+	          timerType = measurement.timerType;
+
+	      if (timerType !== 'render') {
+	        return;
+	      }
+
+	      // If there was a DOM update below this component, or it has just been
+	      // mounted, its render() is not considered wasted.
+	      var updateCount = treeSnapshot[instanceID].updateCount;
+
+	      if (isDefinitelyNotWastedByID[instanceID] || updateCount === 0) {
+	        return;
+	      }
+
+	      // We consider this render() wasted.
+	      updateAggregatedStats(treeSnapshot, instanceID, function (stats) {
+	        stats.renderCount++;
+	      });
+
+	      var nextParentID = instanceID;
+	      while (nextParentID) {
+	        // Any parents rendered during this batch are considered wasted
+	        // unless we previously marked them as dirty.
+	        var isWasted = renderedCompositeIDs[nextParentID] && !isDefinitelyNotWastedByID[nextParentID];
+	        if (isWasted) {
+	          updateAggregatedStats(treeSnapshot, nextParentID, function (stats) {
+	            stats.inclusiveRenderDuration += duration;
+	          });
+	        }
+	        nextParentID = treeSnapshot[nextParentID].parentID;
+	      }
+	    });
+	  });
+
+	  return Object.keys(aggregatedStats).map(function (key) {
+	    return _extends({}, aggregatedStats[key], {
+	      instanceCount: Object.keys(affectedIDs[key]).length
+	    });
+	  }).sort(function (a, b) {
+	    return b.inclusiveRenderDuration - a.inclusiveRenderDuration;
+	  });
+	}
+
+	function getOperations() {
+	  var flushHistory = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : getLastMeasurements();
+
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return [];
+	  }
+
+	  var stats = [];
+	  flushHistory.forEach(function (flush, flushIndex) {
+	    var operations = flush.operations,
+	        treeSnapshot = flush.treeSnapshot;
+
+	    operations.forEach(function (operation) {
+	      var instanceID = operation.instanceID,
+	          type = operation.type,
+	          payload = operation.payload;
+	      var _treeSnapshot$instanc3 = treeSnapshot[instanceID],
+	          displayName = _treeSnapshot$instanc3.displayName,
+	          ownerID = _treeSnapshot$instanc3.ownerID;
+
+	      var owner = treeSnapshot[ownerID];
+	      var key = (owner ? owner.displayName + ' > ' : '') + displayName;
+
+	      stats.push({
+	        flushIndex: flushIndex,
+	        instanceID: instanceID,
+	        key: key,
+	        type: type,
+	        ownerID: ownerID,
+	        payload: payload
+	      });
+	    });
+	  });
+	  return stats;
+	}
+
+	function printExclusive(flushHistory) {
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return;
+	  }
+
+	  var stats = getExclusive(flushHistory);
+	  var table = stats.map(function (item) {
+	    var key = item.key,
+	        instanceCount = item.instanceCount,
+	        totalDuration = item.totalDuration;
+
+	    var renderCount = item.counts.render || 0;
+	    var renderDuration = item.durations.render || 0;
+	    return {
+	      'Component': key,
+	      'Total time (ms)': roundFloat(totalDuration),
+	      'Instance count': instanceCount,
+	      'Total render time (ms)': roundFloat(renderDuration),
+	      'Average render time (ms)': renderCount ? roundFloat(renderDuration / renderCount) : undefined,
+	      'Render count': renderCount,
+	      'Total lifecycle time (ms)': roundFloat(totalDuration - renderDuration)
+	    };
+	  });
+	  consoleTable(table);
+	}
+
+	function printInclusive(flushHistory) {
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return;
+	  }
+
+	  var stats = getInclusive(flushHistory);
+	  var table = stats.map(function (item) {
+	    var key = item.key,
+	        instanceCount = item.instanceCount,
+	        inclusiveRenderDuration = item.inclusiveRenderDuration,
+	        renderCount = item.renderCount;
+
+	    return {
+	      'Owner > Component': key,
+	      'Inclusive render time (ms)': roundFloat(inclusiveRenderDuration),
+	      'Instance count': instanceCount,
+	      'Render count': renderCount
+	    };
+	  });
+	  consoleTable(table);
+	}
+
+	function printWasted(flushHistory) {
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return;
+	  }
+
+	  var stats = getWasted(flushHistory);
+	  var table = stats.map(function (item) {
+	    var key = item.key,
+	        instanceCount = item.instanceCount,
+	        inclusiveRenderDuration = item.inclusiveRenderDuration,
+	        renderCount = item.renderCount;
+
+	    return {
+	      'Owner > Component': key,
+	      'Inclusive wasted time (ms)': roundFloat(inclusiveRenderDuration),
+	      'Instance count': instanceCount,
+	      'Render count': renderCount
+	    };
+	  });
+	  consoleTable(table);
+	}
+
+	function printOperations(flushHistory) {
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return;
+	  }
+
+	  var stats = getOperations(flushHistory);
+	  var table = stats.map(function (stat) {
+	    return {
+	      'Owner > Node': stat.key,
+	      'Operation': stat.type,
+	      'Payload': typeof stat.payload === 'object' ? JSON.stringify(stat.payload) : stat.payload,
+	      'Flush index': stat.flushIndex,
+	      'Owner Component ID': stat.ownerID,
+	      'DOM Component ID': stat.instanceID
+	    };
+	  });
+	  consoleTable(table);
+	}
+
+	var warnedAboutPrintDOM = false;
+	function printDOM(measurements) {
+	  process.env.NODE_ENV !== 'production' ? warning(warnedAboutPrintDOM, '`ReactPerf.printDOM(...)` is deprecated. Use ' + '`ReactPerf.printOperations(...)` instead.') : void 0;
+	  warnedAboutPrintDOM = true;
+	  return printOperations(measurements);
+	}
+
+	var warnedAboutGetMeasurementsSummaryMap = false;
+	function getMeasurementsSummaryMap(measurements) {
+	  process.env.NODE_ENV !== 'production' ? warning(warnedAboutGetMeasurementsSummaryMap, '`ReactPerf.getMeasurementsSummaryMap(...)` is deprecated. Use ' + '`ReactPerf.getWasted(...)` instead.') : void 0;
+	  warnedAboutGetMeasurementsSummaryMap = true;
+	  return getWasted(measurements);
+	}
+
+	function start() {
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return;
+	  }
+
+	  ReactDebugTool.beginProfiling();
+	}
+
+	function stop() {
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return;
+	  }
+
+	  ReactDebugTool.endProfiling();
+	}
+
+	function isRunning() {
+	  if (!(process.env.NODE_ENV !== 'production')) {
+	    warnInProduction();
+	    return false;
+	  }
+
+	  return ReactDebugTool.isProfiling();
+	}
+
+	var ReactPerfAnalysis = {
+	  getLastMeasurements: getLastMeasurements,
+	  getExclusive: getExclusive,
+	  getInclusive: getInclusive,
+	  getWasted: getWasted,
+	  getOperations: getOperations,
+	  printExclusive: printExclusive,
+	  printInclusive: printInclusive,
+	  printWasted: printWasted,
+	  printOperations: printOperations,
+	  start: start,
+	  stop: stop,
+	  isRunning: isRunning,
+	  // Deprecated:
+	  printDOM: printDOM,
+	  getMeasurementsSummaryMap: getMeasurementsSummaryMap
+	};
+
+	module.exports = ReactPerfAnalysis;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 213 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var _prodInvariant = __webpack_require__(36),
+	    _assign = __webpack_require__(54);
+
+	var EventConstants = __webpack_require__(214);
+	var EventPluginHub = __webpack_require__(44);
+	var EventPluginRegistry = __webpack_require__(45);
+	var EventPropagators = __webpack_require__(43);
+	var React = __webpack_require__(3);
+	var ReactDOM = __webpack_require__(34);
+	var ReactDOMComponentTree = __webpack_require__(35);
+	var ReactBrowserEventEmitter = __webpack_require__(110);
+	var ReactInstanceMap = __webpack_require__(121);
+	var ReactUpdates = __webpack_require__(61);
+	var SyntheticEvent = __webpack_require__(58);
+	var ReactShallowRenderer = __webpack_require__(215);
+
+	var findDOMNode = __webpack_require__(178);
+	var invariant = __webpack_require__(38);
+
+	var topLevelTypes = EventConstants.topLevelTypes;
+
+	function Event(suffix) {}
+
+	/**
+	 * @class ReactTestUtils
+	 */
+
+	function findAllInRenderedTreeInternal(inst, test) {
+	  if (!inst || !inst.getPublicInstance) {
+	    return [];
+	  }
+	  var publicInst = inst.getPublicInstance();
+	  var ret = test(publicInst) ? [publicInst] : [];
+	  var currentElement = inst._currentElement;
+	  if (ReactTestUtils.isDOMComponent(publicInst)) {
+	    var renderedChildren = inst._renderedChildren;
+	    var key;
+	    for (key in renderedChildren) {
+	      if (!renderedChildren.hasOwnProperty(key)) {
+	        continue;
+	      }
+	      ret = ret.concat(findAllInRenderedTreeInternal(renderedChildren[key], test));
+	    }
+	  } else if (React.isValidElement(currentElement) && typeof currentElement.type === 'function') {
+	    ret = ret.concat(findAllInRenderedTreeInternal(inst._renderedComponent, test));
+	  }
+	  return ret;
+	}
+
+	/**
+	 * Utilities for making it easy to test React components.
+	 *
+	 * See https://facebook.github.io/react/docs/test-utils.html
+	 *
+	 * Todo: Support the entire DOM.scry query syntax. For now, these simple
+	 * utilities will suffice for testing purposes.
+	 * @lends ReactTestUtils
+	 */
+	var ReactTestUtils = {
+	  renderIntoDocument: function (element) {
+	    var div = document.createElement('div');
+	    // None of our tests actually require attaching the container to the
+	    // DOM, and doing so creates a mess that we rely on test isolation to
+	    // clean up, so we're going to stop honoring the name of this method
+	    // (and probably rename it eventually) if no problems arise.
+	    // document.documentElement.appendChild(div);
+	    return ReactDOM.render(element, div);
+	  },
+
+	  isElement: function (element) {
+	    return React.isValidElement(element);
+	  },
+
+	  isElementOfType: function (inst, convenienceConstructor) {
+	    return React.isValidElement(inst) && inst.type === convenienceConstructor;
+	  },
+
+	  isDOMComponent: function (inst) {
+	    return !!(inst && inst.nodeType === 1 && inst.tagName);
+	  },
+
+	  isDOMComponentElement: function (inst) {
+	    return !!(inst && React.isValidElement(inst) && !!inst.tagName);
+	  },
+
+	  isCompositeComponent: function (inst) {
+	    if (ReactTestUtils.isDOMComponent(inst)) {
+	      // Accessing inst.setState warns; just return false as that'll be what
+	      // this returns when we have DOM nodes as refs directly
+	      return false;
+	    }
+	    return inst != null && typeof inst.render === 'function' && typeof inst.setState === 'function';
+	  },
+
+	  isCompositeComponentWithType: function (inst, type) {
+	    if (!ReactTestUtils.isCompositeComponent(inst)) {
+	      return false;
+	    }
+	    var internalInstance = ReactInstanceMap.get(inst);
+	    var constructor = internalInstance._currentElement.type;
+
+	    return constructor === type;
+	  },
+
+	  isCompositeComponentElement: function (inst) {
+	    if (!React.isValidElement(inst)) {
+	      return false;
+	    }
+	    // We check the prototype of the type that will get mounted, not the
+	    // instance itself. This is a future proof way of duck typing.
+	    var prototype = inst.type.prototype;
+	    return typeof prototype.render === 'function' && typeof prototype.setState === 'function';
+	  },
+
+	  isCompositeComponentElementWithType: function (inst, type) {
+	    var internalInstance = ReactInstanceMap.get(inst);
+	    var constructor = internalInstance._currentElement.type;
+
+	    return !!(ReactTestUtils.isCompositeComponentElement(inst) && constructor === type);
+	  },
+
+	  getRenderedChildOfCompositeComponent: function (inst) {
+	    if (!ReactTestUtils.isCompositeComponent(inst)) {
+	      return null;
+	    }
+	    var internalInstance = ReactInstanceMap.get(inst);
+	    return internalInstance._renderedComponent.getPublicInstance();
+	  },
+
+	  findAllInRenderedTree: function (inst, test) {
+	    if (!inst) {
+	      return [];
+	    }
+	    !ReactTestUtils.isCompositeComponent(inst) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'findAllInRenderedTree(...): instance must be a composite component') : _prodInvariant('10') : void 0;
+	    return findAllInRenderedTreeInternal(ReactInstanceMap.get(inst), test);
+	  },
+
+	  /**
+	   * Finds all instance of components in the rendered tree that are DOM
+	   * components with the class name matching `className`.
+	   * @return {array} an array of all the matches.
+	   */
+	  scryRenderedDOMComponentsWithClass: function (root, classNames) {
+	    return ReactTestUtils.findAllInRenderedTree(root, function (inst) {
+	      if (ReactTestUtils.isDOMComponent(inst)) {
+	        var className = inst.className;
+	        if (typeof className !== 'string') {
+	          // SVG, probably.
+	          className = inst.getAttribute('class') || '';
+	        }
+	        var classList = className.split(/\s+/);
+
+	        if (!Array.isArray(classNames)) {
+	          !(classNames !== undefined) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'TestUtils.scryRenderedDOMComponentsWithClass expects a className as a second argument.') : _prodInvariant('11') : void 0;
+	          classNames = classNames.split(/\s+/);
+	        }
+	        return classNames.every(function (name) {
+	          return classList.indexOf(name) !== -1;
+	        });
+	      }
+	      return false;
+	    });
+	  },
+
+	  /**
+	   * Like scryRenderedDOMComponentsWithClass but expects there to be one result,
+	   * and returns that one result, or throws exception if there is any other
+	   * number of matches besides one.
+	   * @return {!ReactDOMComponent} The one match.
+	   */
+	  findRenderedDOMComponentWithClass: function (root, className) {
+	    var all = ReactTestUtils.scryRenderedDOMComponentsWithClass(root, className);
+	    if (all.length !== 1) {
+	      throw new Error('Did not find exactly one match (found: ' + all.length + ') ' + 'for class:' + className);
+	    }
+	    return all[0];
+	  },
+
+	  /**
+	   * Finds all instance of components in the rendered tree that are DOM
+	   * components with the tag name matching `tagName`.
+	   * @return {array} an array of all the matches.
+	   */
+	  scryRenderedDOMComponentsWithTag: function (root, tagName) {
+	    return ReactTestUtils.findAllInRenderedTree(root, function (inst) {
+	      return ReactTestUtils.isDOMComponent(inst) && inst.tagName.toUpperCase() === tagName.toUpperCase();
+	    });
+	  },
+
+	  /**
+	   * Like scryRenderedDOMComponentsWithTag but expects there to be one result,
+	   * and returns that one result, or throws exception if there is any other
+	   * number of matches besides one.
+	   * @return {!ReactDOMComponent} The one match.
+	   */
+	  findRenderedDOMComponentWithTag: function (root, tagName) {
+	    var all = ReactTestUtils.scryRenderedDOMComponentsWithTag(root, tagName);
+	    if (all.length !== 1) {
+	      throw new Error('Did not find exactly one match (found: ' + all.length + ') ' + 'for tag:' + tagName);
+	    }
+	    return all[0];
+	  },
+
+	  /**
+	   * Finds all instances of components with type equal to `componentType`.
+	   * @return {array} an array of all the matches.
+	   */
+	  scryRenderedComponentsWithType: function (root, componentType) {
+	    return ReactTestUtils.findAllInRenderedTree(root, function (inst) {
+	      return ReactTestUtils.isCompositeComponentWithType(inst, componentType);
+	    });
+	  },
+
+	  /**
+	   * Same as `scryRenderedComponentsWithType` but expects there to be one result
+	   * and returns that one result, or throws exception if there is any other
+	   * number of matches besides one.
+	   * @return {!ReactComponent} The one match.
+	   */
+	  findRenderedComponentWithType: function (root, componentType) {
+	    var all = ReactTestUtils.scryRenderedComponentsWithType(root, componentType);
+	    if (all.length !== 1) {
+	      throw new Error('Did not find exactly one match (found: ' + all.length + ') ' + 'for componentType:' + componentType);
+	    }
+	    return all[0];
+	  },
+
+	  /**
+	   * Pass a mocked component module to this method to augment it with
+	   * useful methods that allow it to be used as a dummy React component.
+	   * Instead of rendering as usual, the component will become a simple
+	   * <div> containing any provided children.
+	   *
+	   * @param {object} module the mock function object exported from a
+	   *                        module that defines the component to be mocked
+	   * @param {?string} mockTagName optional dummy root tag name to return
+	   *                              from render method (overrides
+	   *                              module.mockTagName if provided)
+	   * @return {object} the ReactTestUtils object (for chaining)
+	   */
+	  mockComponent: function (module, mockTagName) {
+	    mockTagName = mockTagName || module.mockTagName || 'div';
+
+	    module.prototype.render.mockImplementation(function () {
+	      return React.createElement(mockTagName, null, this.props.children);
+	    });
+
+	    return this;
+	  },
+
+	  /**
+	   * Simulates a top level event being dispatched from a raw event that occurred
+	   * on an `Element` node.
+	   * @param {Object} topLevelType A type from `EventConstants.topLevelTypes`
+	   * @param {!Element} node The dom to simulate an event occurring on.
+	   * @param {?Event} fakeNativeEvent Fake native event to use in SyntheticEvent.
+	   */
+	  simulateNativeEventOnNode: function (topLevelType, node, fakeNativeEvent) {
+	    fakeNativeEvent.target = node;
+	    ReactBrowserEventEmitter.ReactEventListener.dispatchEvent(topLevelType, fakeNativeEvent);
+	  },
+
+	  /**
+	   * Simulates a top level event being dispatched from a raw event that occurred
+	   * on the `ReactDOMComponent` `comp`.
+	   * @param {Object} topLevelType A type from `EventConstants.topLevelTypes`.
+	   * @param {!ReactDOMComponent} comp
+	   * @param {?Event} fakeNativeEvent Fake native event to use in SyntheticEvent.
+	   */
+	  simulateNativeEventOnDOMComponent: function (topLevelType, comp, fakeNativeEvent) {
+	    ReactTestUtils.simulateNativeEventOnNode(topLevelType, findDOMNode(comp), fakeNativeEvent);
+	  },
+
+	  nativeTouchData: function (x, y) {
+	    return {
+	      touches: [{ pageX: x, pageY: y }]
+	    };
+	  },
+
+	  createRenderer: function () {
+	    return new ReactShallowRenderer();
+	  },
+
+	  Simulate: null,
+	  SimulateNative: {}
+	};
+
+	/**
+	 * Exports:
+	 *
+	 * - `ReactTestUtils.Simulate.click(Element/ReactDOMComponent)`
+	 * - `ReactTestUtils.Simulate.mouseMove(Element/ReactDOMComponent)`
+	 * - `ReactTestUtils.Simulate.change(Element/ReactDOMComponent)`
+	 * - ... (All keys from event plugin `eventTypes` objects)
+	 */
+	function makeSimulator(eventType) {
+	  return function (domComponentOrNode, eventData) {
+	    var node;
+	    !!React.isValidElement(domComponentOrNode) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'TestUtils.Simulate expects a component instance and not a ReactElement.TestUtils.Simulate will not work if you are using shallow rendering.') : _prodInvariant('14') : void 0;
+	    if (ReactTestUtils.isDOMComponent(domComponentOrNode)) {
+	      node = findDOMNode(domComponentOrNode);
+	    } else if (domComponentOrNode.tagName) {
+	      node = domComponentOrNode;
+	    }
+
+	    var dispatchConfig = EventPluginRegistry.eventNameDispatchConfigs[eventType];
+
+	    var fakeNativeEvent = new Event();
+	    fakeNativeEvent.target = node;
+	    fakeNativeEvent.type = eventType.toLowerCase();
+
+	    // We don't use SyntheticEvent.getPooled in order to not have to worry about
+	    // properly destroying any properties assigned from `eventData` upon release
+	    var event = new SyntheticEvent(dispatchConfig, ReactDOMComponentTree.getInstanceFromNode(node), fakeNativeEvent, node);
+	    // Since we aren't using pooling, always persist the event. This will make
+	    // sure it's marked and won't warn when setting additional properties.
+	    event.persist();
+	    _assign(event, eventData);
+
+	    if (dispatchConfig.phasedRegistrationNames) {
+	      EventPropagators.accumulateTwoPhaseDispatches(event);
+	    } else {
+	      EventPropagators.accumulateDirectDispatches(event);
+	    }
+
+	    ReactUpdates.batchedUpdates(function () {
+	      EventPluginHub.enqueueEvents(event);
+	      EventPluginHub.processEventQueue(true);
+	    });
+	  };
+	}
+
+	function buildSimulators() {
+	  ReactTestUtils.Simulate = {};
+
+	  var eventType;
+	  for (eventType in EventPluginRegistry.eventNameDispatchConfigs) {
+	    /**
+	     * @param {!Element|ReactDOMComponent} domComponentOrNode
+	     * @param {?object} eventData Fake event data to use in SyntheticEvent.
+	     */
+	    ReactTestUtils.Simulate[eventType] = makeSimulator(eventType);
+	  }
+	}
+
+	// Rebuild ReactTestUtils.Simulate whenever event plugins are injected
+	var oldInjectEventPluginOrder = EventPluginHub.injection.injectEventPluginOrder;
+	EventPluginHub.injection.injectEventPluginOrder = function () {
+	  oldInjectEventPluginOrder.apply(this, arguments);
+	  buildSimulators();
+	};
+	var oldInjectEventPlugins = EventPluginHub.injection.injectEventPluginsByName;
+	EventPluginHub.injection.injectEventPluginsByName = function () {
+	  oldInjectEventPlugins.apply(this, arguments);
+	  buildSimulators();
+	};
+
+	buildSimulators();
+
+	/**
+	 * Exports:
+	 *
+	 * - `ReactTestUtils.SimulateNative.click(Element/ReactDOMComponent)`
+	 * - `ReactTestUtils.SimulateNative.mouseMove(Element/ReactDOMComponent)`
+	 * - `ReactTestUtils.SimulateNative.mouseIn/ReactDOMComponent)`
+	 * - `ReactTestUtils.SimulateNative.mouseOut(Element/ReactDOMComponent)`
+	 * - ... (All keys from `EventConstants.topLevelTypes`)
+	 *
+	 * Note: Top level event types are a subset of the entire set of handler types
+	 * (which include a broader set of "synthetic" events). For example, onDragDone
+	 * is a synthetic event. Except when testing an event plugin or React's event
+	 * handling code specifically, you probably want to use ReactTestUtils.Simulate
+	 * to dispatch synthetic events.
+	 */
+
+	function makeNativeSimulator(eventType) {
+	  return function (domComponentOrNode, nativeEventData) {
+	    var fakeNativeEvent = new Event(eventType);
+	    _assign(fakeNativeEvent, nativeEventData);
+	    if (ReactTestUtils.isDOMComponent(domComponentOrNode)) {
+	      ReactTestUtils.simulateNativeEventOnDOMComponent(eventType, domComponentOrNode, fakeNativeEvent);
+	    } else if (domComponentOrNode.tagName) {
+	      // Will allow on actual dom nodes.
+	      ReactTestUtils.simulateNativeEventOnNode(eventType, domComponentOrNode, fakeNativeEvent);
+	    }
+	  };
+	}
+
+	Object.keys(topLevelTypes).forEach(function (eventType) {
+	  // Event type is stored as 'topClick' - we transform that to 'click'
+	  var convenienceName = eventType.indexOf('top') === 0 ? eventType.charAt(3).toLowerCase() + eventType.substr(4) : eventType;
+	  /**
+	   * @param {!Element|ReactDOMComponent} domComponentOrNode
+	   * @param {?Event} nativeEventData Fake native event to use in SyntheticEvent.
+	   */
+	  ReactTestUtils.SimulateNative[convenienceName] = makeNativeSimulator(eventType);
+	});
+
+	module.exports = ReactTestUtils;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 214 */
+/***/ function(module, exports) {
+
+	/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	/**
+	 * Types of raw signals from the browser caught at the top level.
+	 */
+	var topLevelTypes = {
+	  topAbort: null,
+	  topAnimationEnd: null,
+	  topAnimationIteration: null,
+	  topAnimationStart: null,
+	  topBlur: null,
+	  topCanPlay: null,
+	  topCanPlayThrough: null,
+	  topChange: null,
+	  topClick: null,
+	  topCompositionEnd: null,
+	  topCompositionStart: null,
+	  topCompositionUpdate: null,
+	  topContextMenu: null,
+	  topCopy: null,
+	  topCut: null,
+	  topDoubleClick: null,
+	  topDrag: null,
+	  topDragEnd: null,
+	  topDragEnter: null,
+	  topDragExit: null,
+	  topDragLeave: null,
+	  topDragOver: null,
+	  topDragStart: null,
+	  topDrop: null,
+	  topDurationChange: null,
+	  topEmptied: null,
+	  topEncrypted: null,
+	  topEnded: null,
+	  topError: null,
+	  topFocus: null,
+	  topInput: null,
+	  topInvalid: null,
+	  topKeyDown: null,
+	  topKeyPress: null,
+	  topKeyUp: null,
+	  topLoad: null,
+	  topLoadedData: null,
+	  topLoadedMetadata: null,
+	  topLoadStart: null,
+	  topMouseDown: null,
+	  topMouseMove: null,
+	  topMouseOut: null,
+	  topMouseOver: null,
+	  topMouseUp: null,
+	  topPaste: null,
+	  topPause: null,
+	  topPlay: null,
+	  topPlaying: null,
+	  topProgress: null,
+	  topRateChange: null,
+	  topReset: null,
+	  topScroll: null,
+	  topSeeked: null,
+	  topSeeking: null,
+	  topSelectionChange: null,
+	  topStalled: null,
+	  topSubmit: null,
+	  topSuspend: null,
+	  topTextInput: null,
+	  topTimeUpdate: null,
+	  topTouchCancel: null,
+	  topTouchEnd: null,
+	  topTouchMove: null,
+	  topTouchStart: null,
+	  topTransitionEnd: null,
+	  topVolumeChange: null,
+	  topWaiting: null,
+	  topWheel: null
+	};
+
+	var EventConstants = {
+	  topLevelTypes: topLevelTypes
+	};
+
+	module.exports = EventConstants;
+
+/***/ },
+/* 215 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var _prodInvariant = __webpack_require__(36),
+	    _assign = __webpack_require__(54);
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var React = __webpack_require__(3);
+	var ReactDefaultInjection = __webpack_require__(40);
+	var ReactCompositeComponent = __webpack_require__(124);
+	var ReactReconciler = __webpack_require__(64);
+	var ReactUpdates = __webpack_require__(61);
+
+	var emptyObject = __webpack_require__(128);
+	var getNextDebugID = __webpack_require__(133);
+	var invariant = __webpack_require__(38);
+
+	var NoopInternalComponent = function () {
+	  function NoopInternalComponent(element) {
+	    _classCallCheck(this, NoopInternalComponent);
+
+	    this._renderedOutput = element;
+	    this._currentElement = element;
+
+	    if (process.env.NODE_ENV !== 'production') {
+	      this._debugID = getNextDebugID();
+	    }
+	  }
+
+	  NoopInternalComponent.prototype.mountComponent = function mountComponent() {};
+
+	  NoopInternalComponent.prototype.receiveComponent = function receiveComponent(element) {
+	    this._renderedOutput = element;
+	    this._currentElement = element;
+	  };
+
+	  NoopInternalComponent.prototype.unmountComponent = function unmountComponent() {};
+
+	  NoopInternalComponent.prototype.getHostNode = function getHostNode() {
+	    return undefined;
+	  };
+
+	  NoopInternalComponent.prototype.getPublicInstance = function getPublicInstance() {
+	    return null;
+	  };
+
+	  return NoopInternalComponent;
+	}();
+
+	var ShallowComponentWrapper = function (element) {
+	  // TODO: Consolidate with instantiateReactComponent
+	  if (process.env.NODE_ENV !== 'production') {
+	    this._debugID = getNextDebugID();
+	  }
+
+	  this.construct(element);
+	};
+	_assign(ShallowComponentWrapper.prototype, ReactCompositeComponent, {
+	  _constructComponent: ReactCompositeComponent._constructComponentWithoutOwner,
+	  _instantiateReactComponent: function (element) {
+	    return new NoopInternalComponent(element);
+	  },
+	  _replaceNodeWithMarkup: function () {},
+	  _renderValidatedComponent: ReactCompositeComponent._renderValidatedComponentWithoutOwnerOrContext
+	});
+
+	function _batchedRender(renderer, element, context) {
+	  var transaction = ReactUpdates.ReactReconcileTransaction.getPooled(true);
+	  renderer._render(element, transaction, context);
+	  ReactUpdates.ReactReconcileTransaction.release(transaction);
+	}
+
+	var ReactShallowRenderer = function () {
+	  function ReactShallowRenderer() {
+	    _classCallCheck(this, ReactShallowRenderer);
+
+	    this._instance = null;
+	  }
+
+	  ReactShallowRenderer.prototype.getMountedInstance = function getMountedInstance() {
+	    return this._instance ? this._instance._instance : null;
+	  };
+
+	  ReactShallowRenderer.prototype.render = function render(element, context) {
+	    // Ensure we've done the default injections. This might not be true in the
+	    // case of a simple test that only requires React and the TestUtils in
+	    // conjunction with an inline-requires transform.
+	    ReactDefaultInjection.inject();
+
+	    !React.isValidElement(element) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactShallowRenderer render(): Invalid component element.%s', typeof element === 'function' ? ' Instead of passing a component class, make sure to instantiate ' + 'it by passing it to React.createElement.' : '') : _prodInvariant('12', typeof element === 'function' ? ' Instead of passing a component class, make sure to instantiate ' + 'it by passing it to React.createElement.' : '') : void 0;
+	    !(typeof element.type !== 'string') ? process.env.NODE_ENV !== 'production' ? invariant(false, 'ReactShallowRenderer render(): Shallow rendering works only with custom components, not primitives (%s). Instead of calling `.render(el)` and inspecting the rendered output, look at `el.props` directly instead.', element.type) : _prodInvariant('13', element.type) : void 0;
+
+	    if (!context) {
+	      context = emptyObject;
+	    }
+	    ReactUpdates.batchedUpdates(_batchedRender, this, element, context);
+
+	    return this.getRenderOutput();
+	  };
+
+	  ReactShallowRenderer.prototype.getRenderOutput = function getRenderOutput() {
+	    return this._instance && this._instance._renderedComponent && this._instance._renderedComponent._renderedOutput || null;
+	  };
+
+	  ReactShallowRenderer.prototype.unmount = function unmount() {
+	    if (this._instance) {
+	      ReactReconciler.unmountComponent(this._instance, false);
+	    }
+	  };
+
+	  ReactShallowRenderer.prototype._render = function _render(element, transaction, context) {
+	    if (this._instance) {
+	      ReactReconciler.receiveComponent(this._instance, element, transaction, context);
+	    } else {
+	      var instance = new ShallowComponentWrapper(element);
+	      ReactReconciler.mountComponent(instance, transaction, null, null, context, 0);
+	      this._instance = instance;
+	    }
+	  };
+
+	  return ReactShallowRenderer;
+	}();
+
+	module.exports = ReactShallowRenderer;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 216 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var flattenChildren = __webpack_require__(217);
+
+	var ReactTransitionChildMapping = {
+	  /**
+	   * Given `this.props.children`, return an object mapping key to child. Just
+	   * simple syntactic sugar around flattenChildren().
+	   *
+	   * @param {*} children `this.props.children`
+	   * @param {number=} selfDebugID Optional debugID of the current internal instance.
+	   * @return {object} Mapping of key to child
+	   */
+	  getChildMapping: function (children, selfDebugID) {
+	    if (!children) {
+	      return children;
+	    }
+
+	    if (process.env.NODE_ENV !== 'production') {
+	      return flattenChildren(children, selfDebugID);
+	    }
+
+	    return flattenChildren(children);
+	  },
+
+	  /**
+	   * When you're adding or removing children some may be added or removed in the
+	   * same render pass. We want to show *both* since we want to simultaneously
+	   * animate elements in and out. This function takes a previous set of keys
+	   * and a new set of keys and merges them with its best guess of the correct
+	   * ordering. In the future we may expose some of the utilities in
+	   * ReactMultiChild to make this easy, but for now React itself does not
+	   * directly have this concept of the union of prevChildren and nextChildren
+	   * so we implement it here.
+	   *
+	   * @param {object} prev prev children as returned from
+	   * `ReactTransitionChildMapping.getChildMapping()`.
+	   * @param {object} next next children as returned from
+	   * `ReactTransitionChildMapping.getChildMapping()`.
+	   * @return {object} a key set that contains all keys in `prev` and all keys
+	   * in `next` in a reasonable order.
+	   */
+	  mergeChildMappings: function (prev, next) {
+	    prev = prev || {};
+	    next = next || {};
+
+	    function getValueForKey(key) {
+	      if (next.hasOwnProperty(key)) {
+	        return next[key];
+	      } else {
+	        return prev[key];
+	      }
+	    }
+
+	    // For each key of `next`, the list of keys to insert before that key in
+	    // the combined list
+	    var nextKeysPending = {};
+
+	    var pendingKeys = [];
+	    for (var prevKey in prev) {
+	      if (next.hasOwnProperty(prevKey)) {
+	        if (pendingKeys.length) {
+	          nextKeysPending[prevKey] = pendingKeys;
+	          pendingKeys = [];
+	        }
+	      } else {
+	        pendingKeys.push(prevKey);
+	      }
+	    }
+
+	    var i;
+	    var childMapping = {};
+	    for (var nextKey in next) {
+	      if (nextKeysPending.hasOwnProperty(nextKey)) {
+	        for (i = 0; i < nextKeysPending[nextKey].length; i++) {
+	          var pendingNextKey = nextKeysPending[nextKey][i];
+	          childMapping[nextKeysPending[nextKey][i]] = getValueForKey(pendingNextKey);
+	        }
+	      }
+	      childMapping[nextKey] = getValueForKey(nextKey);
+	    }
+
+	    // Finally, add the keys which didn't appear before any key in `next`
+	    for (i = 0; i < pendingKeys.length; i++) {
+	      childMapping[pendingKeys[i]] = getValueForKey(pendingKeys[i]);
+	    }
+
+	    return childMapping;
+	  }
+	};
+
+	module.exports = ReactTransitionChildMapping;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 217 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * 
+	 */
+
+	'use strict';
+
+	var KeyEscapeUtils = __webpack_require__(18);
+	var traverseAllChildren = __webpack_require__(16);
+	var warning = __webpack_require__(12);
+
+	var ReactComponentTreeHook;
+
+	if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
+	  // Temporary hack.
+	  // Inline requires don't work well with Jest:
+	  // https://github.com/facebook/react/issues/7240
+	  // Remove the inline requires when we don't need them anymore:
+	  // https://github.com/facebook/react/pull/7178
+	  ReactComponentTreeHook = __webpack_require__(27);
+	}
+
+	/**
+	 * @param {function} traverseContext Context passed through traversal.
+	 * @param {?ReactComponent} child React child component.
+	 * @param {!string} name String name of key path to child.
+	 * @param {number=} selfDebugID Optional debugID of the current internal instance.
+	 */
+	function flattenSingleChildIntoContext(traverseContext, child, name, selfDebugID) {
+	  // We found a component instance.
+	  if (traverseContext && typeof traverseContext === 'object') {
+	    var result = traverseContext;
+	    var keyUnique = result[name] === undefined;
+	    if (process.env.NODE_ENV !== 'production') {
+	      if (!ReactComponentTreeHook) {
+	        ReactComponentTreeHook = __webpack_require__(27);
+	      }
+	      if (!keyUnique) {
+	        process.env.NODE_ENV !== 'production' ? warning(false, 'flattenChildren(...): Encountered two children with the same key, ' + '`%s`. Child keys must be unique; when two children share a key, only ' + 'the first child will be used.%s', KeyEscapeUtils.unescape(name), ReactComponentTreeHook.getStackAddendumByID(selfDebugID)) : void 0;
+	      }
+	    }
+	    if (keyUnique && child != null) {
+	      result[name] = child;
+	    }
+	  }
+	}
+
+	/**
+	 * Flattens children that are typically specified as `props.children`. Any null
+	 * children will not be included in the resulting object.
+	 * @return {!object} flattened children keyed by name.
+	 */
+	function flattenChildren(children, selfDebugID) {
+	  if (children == null) {
+	    return children;
+	  }
+	  var result = {};
+
+	  if (process.env.NODE_ENV !== 'production') {
+	    traverseAllChildren(children, function (traverseContext, child, name) {
+	      return flattenSingleChildIntoContext(traverseContext, child, name, selfDebugID);
+	    }, result);
+	  } else {
+	    traverseAllChildren(children, flattenSingleChildIntoContext, result);
+	  }
+	  return result;
+	}
+
+	module.exports = flattenChildren;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 218 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var React = __webpack_require__(3);
+	var ReactAddonsDOMDependencies = __webpack_require__(211);
+
+	var CSSCore = __webpack_require__(219);
+	var ReactTransitionEvents = __webpack_require__(220);
+
+	var onlyChild = __webpack_require__(32);
+
+	var TICK = 17;
+
+	var ReactCSSTransitionGroupChild = React.createClass({
+	  displayName: 'ReactCSSTransitionGroupChild',
+
+	  propTypes: {
+	    name: React.PropTypes.oneOfType([React.PropTypes.string, React.PropTypes.shape({
+	      enter: React.PropTypes.string,
+	      leave: React.PropTypes.string,
+	      active: React.PropTypes.string
+	    }), React.PropTypes.shape({
+	      enter: React.PropTypes.string,
+	      enterActive: React.PropTypes.string,
+	      leave: React.PropTypes.string,
+	      leaveActive: React.PropTypes.string,
+	      appear: React.PropTypes.string,
+	      appearActive: React.PropTypes.string
+	    })]).isRequired,
+
+	    // Once we require timeouts to be specified, we can remove the
+	    // boolean flags (appear etc.) and just accept a number
+	    // or a bool for the timeout flags (appearTimeout etc.)
+	    appear: React.PropTypes.bool,
+	    enter: React.PropTypes.bool,
+	    leave: React.PropTypes.bool,
+	    appearTimeout: React.PropTypes.number,
+	    enterTimeout: React.PropTypes.number,
+	    leaveTimeout: React.PropTypes.number
+	  },
+
+	  transition: function (animationType, finishCallback, userSpecifiedDelay) {
+	    var node = ReactAddonsDOMDependencies.getReactDOM().findDOMNode(this);
+
+	    if (!node) {
+	      if (finishCallback) {
+	        finishCallback();
+	      }
+	      return;
+	    }
+
+	    var className = this.props.name[animationType] || this.props.name + '-' + animationType;
+	    var activeClassName = this.props.name[animationType + 'Active'] || className + '-active';
+	    var timeout = null;
+
+	    var endListener = function (e) {
+	      if (e && e.target !== node) {
+	        return;
+	      }
+
+	      clearTimeout(timeout);
+
+	      CSSCore.removeClass(node, className);
+	      CSSCore.removeClass(node, activeClassName);
+
+	      ReactTransitionEvents.removeEndEventListener(node, endListener);
+
+	      // Usually this optional callback is used for informing an owner of
+	      // a leave animation and telling it to remove the child.
+	      if (finishCallback) {
+	        finishCallback();
+	      }
+	    };
+
+	    CSSCore.addClass(node, className);
+
+	    // Need to do this to actually trigger a transition.
+	    this.queueClassAndNode(activeClassName, node);
+
+	    // If the user specified a timeout delay.
+	    if (userSpecifiedDelay) {
+	      // Clean-up the animation after the specified delay
+	      timeout = setTimeout(endListener, userSpecifiedDelay);
+	      this.transitionTimeouts.push(timeout);
+	    } else {
+	      // DEPRECATED: this listener will be removed in a future version of react
+	      ReactTransitionEvents.addEndEventListener(node, endListener);
+	    }
+	  },
+
+	  queueClassAndNode: function (className, node) {
+	    this.classNameAndNodeQueue.push({
+	      className: className,
+	      node: node
+	    });
+
+	    if (!this.timeout) {
+	      this.timeout = setTimeout(this.flushClassNameAndNodeQueue, TICK);
+	    }
+	  },
+
+	  flushClassNameAndNodeQueue: function () {
+	    if (this.isMounted()) {
+	      this.classNameAndNodeQueue.forEach(function (obj) {
+	        CSSCore.addClass(obj.node, obj.className);
+	      });
+	    }
+	    this.classNameAndNodeQueue.length = 0;
+	    this.timeout = null;
+	  },
+
+	  componentWillMount: function () {
+	    this.classNameAndNodeQueue = [];
+	    this.transitionTimeouts = [];
+	  },
+
+	  componentWillUnmount: function () {
+	    if (this.timeout) {
+	      clearTimeout(this.timeout);
+	    }
+	    this.transitionTimeouts.forEach(function (timeout) {
+	      clearTimeout(timeout);
+	    });
+
+	    this.classNameAndNodeQueue.length = 0;
+	  },
+
+	  componentWillAppear: function (done) {
+	    if (this.props.appear) {
+	      this.transition('appear', done, this.props.appearTimeout);
+	    } else {
+	      done();
+	    }
+	  },
+
+	  componentWillEnter: function (done) {
+	    if (this.props.enter) {
+	      this.transition('enter', done, this.props.enterTimeout);
+	    } else {
+	      done();
+	    }
+	  },
+
+	  componentWillLeave: function (done) {
+	    if (this.props.leave) {
+	      this.transition('leave', done, this.props.leaveTimeout);
+	    } else {
+	      done();
+	    }
+	  },
+
+	  render: function () {
+	    return onlyChild(this.props.children);
+	  }
+	});
+
+	module.exports = ReactCSSTransitionGroupChild;
+
+/***/ },
+/* 219 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
+
+	/**
+	 * Copyright (c) 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @typechecks
+	 */
+
+	var invariant = __webpack_require__(9);
+
+	/**
+	 * The CSSCore module specifies the API (and implements most of the methods)
+	 * that should be used when dealing with the display of elements (via their
+	 * CSS classes and visibility on screen. It is an API focused on mutating the
+	 * display and not reading it as no logical state should be encoded in the
+	 * display of elements.
+	 */
+
+	/* Slow implementation for browsers that don't natively support .matches() */
+	function matchesSelector_SLOW(element, selector) {
+	  var root = element;
+	  while (root.parentNode) {
+	    root = root.parentNode;
+	  }
+
+	  var all = root.querySelectorAll(selector);
+	  return Array.prototype.indexOf.call(all, element) !== -1;
+	}
+
+	var CSSCore = {
+
+	  /**
+	   * Adds the class passed in to the element if it doesn't already have it.
+	   *
+	   * @param {DOMElement} element the element to set the class on
+	   * @param {string} className the CSS className
+	   * @return {DOMElement} the element passed in
+	   */
+	  addClass: function addClass(element, className) {
+	    !!/\s/.test(className) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'CSSCore.addClass takes only a single class name. "%s" contains ' + 'multiple classes.', className) : invariant(false) : void 0;
+
+	    if (className) {
+	      if (element.classList) {
+	        element.classList.add(className);
+	      } else if (!CSSCore.hasClass(element, className)) {
+	        element.className = element.className + ' ' + className;
+	      }
+	    }
+	    return element;
+	  },
+
+	  /**
+	   * Removes the class passed in from the element
+	   *
+	   * @param {DOMElement} element the element to set the class on
+	   * @param {string} className the CSS className
+	   * @return {DOMElement} the element passed in
+	   */
+	  removeClass: function removeClass(element, className) {
+	    !!/\s/.test(className) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'CSSCore.removeClass takes only a single class name. "%s" contains ' + 'multiple classes.', className) : invariant(false) : void 0;
+
+	    if (className) {
+	      if (element.classList) {
+	        element.classList.remove(className);
+	      } else if (CSSCore.hasClass(element, className)) {
+	        element.className = element.className.replace(new RegExp('(^|\\s)' + className + '(?:\\s|$)', 'g'), '$1').replace(/\s+/g, ' ') // multiple spaces to one
+	        .replace(/^\s*|\s*$/g, ''); // trim the ends
+	      }
+	    }
+	    return element;
+	  },
+
+	  /**
+	   * Helper to add or remove a class from an element based on a condition.
+	   *
+	   * @param {DOMElement} element the element to set the class on
+	   * @param {string} className the CSS className
+	   * @param {*} bool condition to whether to add or remove the class
+	   * @return {DOMElement} the element passed in
+	   */
+	  conditionClass: function conditionClass(element, className, bool) {
+	    return (bool ? CSSCore.addClass : CSSCore.removeClass)(element, className);
+	  },
+
+	  /**
+	   * Tests whether the element has the class specified.
+	   *
+	   * @param {DOMNode|DOMWindow} element the element to check the class on
+	   * @param {string} className the CSS className
+	   * @return {boolean} true if the element has the class, false if not
+	   */
+	  hasClass: function hasClass(element, className) {
+	    !!/\s/.test(className) ? process.env.NODE_ENV !== 'production' ? invariant(false, 'CSS.hasClass takes only a single class name.') : invariant(false) : void 0;
+	    if (element.classList) {
+	      return !!className && element.classList.contains(className);
+	    }
+	    return (' ' + element.className + ' ').indexOf(' ' + className + ' ') > -1;
+	  },
+
+	  /**
+	   * Tests whether the element matches the selector specified
+	   *
+	   * @param {DOMNode|DOMWindow} element the element that we are querying
+	   * @param {string} selector the CSS selector
+	   * @return {boolean} true if the element matches the selector, false if not
+	   */
+	  matchesSelector: function matchesSelector(element, selector) {
+	    var matchesImpl = element.matches || element.webkitMatchesSelector || element.mozMatchesSelector || element.msMatchesSelector || function (s) {
+	      return matchesSelector_SLOW(element, s);
+	    };
+	    return matchesImpl.call(element, selector);
+	  }
+
+	};
+
+	module.exports = CSSCore;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 220 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Copyright 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var ExecutionEnvironment = __webpack_require__(221);
+
+	var getVendorPrefixedEventName = __webpack_require__(112);
+
+	var endEvents = [];
+
+	function detectEvents() {
+	  var animEnd = getVendorPrefixedEventName('animationend');
+	  var transEnd = getVendorPrefixedEventName('transitionend');
+
+	  if (animEnd) {
+	    endEvents.push(animEnd);
+	  }
+
+	  if (transEnd) {
+	    endEvents.push(transEnd);
+	  }
+	}
+
+	if (ExecutionEnvironment.canUseDOM) {
+	  detectEvents();
+	}
+
+	// We use the raw {add|remove}EventListener() call because EventListener
+	// does not know how to remove event listeners and we really should
+	// clean up. Also, these events are not triggered in older browsers
+	// so we should be A-OK here.
+
+	function addEventListener(node, eventName, eventListener) {
+	  node.addEventListener(eventName, eventListener, false);
+	}
+
+	function removeEventListener(node, eventName, eventListener) {
+	  node.removeEventListener(eventName, eventListener, false);
+	}
+
+	var ReactTransitionEvents = {
+	  addEndEventListener: function (node, eventListener) {
+	    if (endEvents.length === 0) {
+	      // If CSS transitions are not supported, trigger an "end animation"
+	      // event immediately.
+	      window.setTimeout(eventListener, 0);
+	      return;
+	    }
+	    endEvents.forEach(function (endEvent) {
+	      addEventListener(node, endEvent, eventListener);
+	    });
+	  },
+
+	  removeEndEventListener: function (node, eventListener) {
+	    if (endEvents.length === 0) {
+	      return;
+	    }
+	    endEvents.forEach(function (endEvent) {
+	      removeEventListener(node, endEvent, eventListener);
+	    });
+	  }
+	};
+
+	module.exports = ReactTransitionEvents;
+
+/***/ },
+/* 221 */
+/***/ function(module, exports) {
+
+	/**
+	 * Copyright (c) 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 */
+
+	'use strict';
+
+	var canUseDOM = !!(typeof window !== 'undefined' && window.document && window.document.createElement);
+
+	/**
+	 * Simple, lightweight module assisting with the detection and context of
+	 * Worker. Helps avoid circular dependencies and allows code to reason about
+	 * whether or not they are in a Worker, even if they never include the main
+	 * `ReactWorker` dependency.
+	 */
+	var ExecutionEnvironment = {
+
+	  canUseDOM: canUseDOM,
+
+	  canUseWorkers: typeof Worker !== 'undefined',
+
+	  canUseEventListeners: canUseDOM && !!(window.addEventListener || window.attachEvent),
+
+	  canUseViewport: canUseDOM && !!window.screen,
+
+	  isInWorker: !canUseDOM // For now, this is true - might change in the future.
+
+	};
+
+	module.exports = ExecutionEnvironment;
+
+/***/ },
+/* 222 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(196);
+	var content = __webpack_require__(223);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(192)(content, {});
@@ -37412,7 +55973,7 @@
 	}
 
 /***/ },
-/* 196 */
+/* 223 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(188)();
@@ -37420,18 +55981,18 @@
 
 
 	// module
-	exports.push([module.id, "/*#app {\n  background-color: red;\n}*/\n\nhtml, body {\n  height: 100%;\n  width: 100%;\n  margin: 0;\n  padding: 0;\n}\n#root {\n  width: inherit;\n  height: inherit;\n  background-color: #000;\n}\n\n#map {\n\theight: inherit;\n\twidth: inherit;\n\tz-index: 0;\n}\n#mapUI {\n  width: inherit;\n  height: inherit;\n  background-color: #000;\n}\n\n.filterMRTLines {\n  position: absolute;\n  top: 10px;\n  z-index: 50;\n  width: 200px;\n  height: auto;\n  background: hsla(0,100%,100%,0.8);\n  margin: 10px;\n  font-family: sans-serif;\n  font-size: 13px;\n  padding: 5px;\n  padding-bottom: 10px;\n  border-radius: 5px;\n}\n\n.filterMRTLines hr {\n  border: 1px solid #000;\n  margin: 5px;\n}\n.filterMRTLines h3 {\n  margin-top: 0;\n  padding-left: 5px;\n}\n.filterMRTLines p {\n  padding-left: 5px;\n}\n.filterMRTLines select {\n  display: block;\n  margin: 0 auto;\n}", ""]);
+	exports.push([module.id, "/*#app {\n  background-color: red;\n}*/\n\nhtml, body {\n  height: 100%;\n  width: 100%;\n  margin: 0;\n  padding: 0;\n}\n#root {\n  width: inherit;\n  height: inherit;\n  background-color: #000;\n}\n\n#map {\n\theight: inherit;\n\twidth: inherit;\n\tz-index: 0;\n}\n#mapUI {\n  width: inherit;\n  height: inherit;\n  background-color: #000;\n}\n\n.filterMRTLines {\n  position: absolute;\n  top: 10px;\n  z-index: 50;\n  width: 200px;\n  height: auto;\n  background: hsla(0,100%,100%,0.8);\n  margin: 10px;\n  font-family: sans-serif;\n  font-size: 13px;\n  padding: 5px;\n  padding-bottom: 10px;\n  border-radius: 5px;\n}\n\n.filterMRTLines hr {\n  border: 1px solid #000;\n  margin: 5px;\n}\n.filterMRTLines h3 {\n  margin-top: 0;\n  padding-left: 5px;\n}\n.filterMRTLines p {\n  padding-left: 5px;\n}\n.filterMRTLines select {\n  display: block;\n  margin: 0 auto;\n}\n\n.slideInFromRightSide-enter {\n  right: -30%;\n}\n\n.slideInFromRightSide-enter .slideInFromRightSide-enter-active {\n  transition: right 2000ms ease-in;\n}\n\n#chartArea {\n  height: 100%;\n  width: 30%;\n  position: absolute;\n  right: 0px;\n  z-index: 50;\n  background-color: hsla(240,100%,0%,0.8);\n}\n\n#chartArea #charts {\n  height: 100%;\n}", ""]);
 
 	// exports
 
 
 /***/ },
-/* 197 */
+/* 224 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(__resourceQuery) {var url = __webpack_require__(198);
-	var stripAnsi = __webpack_require__(205);
-	var socket = __webpack_require__(207);
+	/* WEBPACK VAR INJECTION */(function(__resourceQuery) {var url = __webpack_require__(225);
+	var stripAnsi = __webpack_require__(232);
+	var socket = __webpack_require__(234);
 
 	function getCurrentScriptSource() {
 		// `document.currentScript` is the most accurate way to find the current script,
@@ -37561,7 +56122,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, "?http://127.0.0.1:8080/"))
 
 /***/ },
-/* 198 */
+/* 225 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -37587,8 +56148,8 @@
 
 	'use strict';
 
-	var punycode = __webpack_require__(199);
-	var util = __webpack_require__(201);
+	var punycode = __webpack_require__(226);
+	var util = __webpack_require__(228);
 
 	exports.parse = urlParse;
 	exports.resolve = urlResolve;
@@ -37663,7 +56224,7 @@
 	      'gopher:': true,
 	      'file:': true
 	    },
-	    querystring = __webpack_require__(202);
+	    querystring = __webpack_require__(229);
 
 	function urlParse(url, parseQueryString, slashesDenoteHost) {
 	  if (url && util.isObject(url) && url instanceof Url) return url;
@@ -38299,7 +56860,7 @@
 
 
 /***/ },
-/* 199 */
+/* 226 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! https://mths.be/punycode v1.3.2 by @mathias */
@@ -38831,10 +57392,10 @@
 
 	}(this));
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(200)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(227)(module), (function() { return this; }())))
 
 /***/ },
-/* 200 */
+/* 227 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -38850,7 +57411,7 @@
 
 
 /***/ },
-/* 201 */
+/* 228 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -38872,17 +57433,17 @@
 
 
 /***/ },
-/* 202 */
+/* 229 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	exports.decode = exports.parse = __webpack_require__(203);
-	exports.encode = exports.stringify = __webpack_require__(204);
+	exports.decode = exports.parse = __webpack_require__(230);
+	exports.encode = exports.stringify = __webpack_require__(231);
 
 
 /***/ },
-/* 203 */
+/* 230 */
 /***/ function(module, exports) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -38968,7 +57529,7 @@
 
 
 /***/ },
-/* 204 */
+/* 231 */
 /***/ function(module, exports) {
 
 	// Copyright Joyent, Inc. and other Node contributors.
@@ -39038,11 +57599,11 @@
 
 
 /***/ },
-/* 205 */
+/* 232 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	var ansiRegex = __webpack_require__(206)();
+	var ansiRegex = __webpack_require__(233)();
 
 	module.exports = function (str) {
 		return typeof str === 'string' ? str.replace(ansiRegex, '') : str;
@@ -39050,7 +57611,7 @@
 
 
 /***/ },
-/* 206 */
+/* 233 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -39060,10 +57621,10 @@
 
 
 /***/ },
-/* 207 */
+/* 234 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var SockJS = __webpack_require__(208);
+	var SockJS = __webpack_require__(235);
 
 	var retries = 0;
 	var sock = null;
@@ -39107,14 +57668,14 @@
 
 
 /***/ },
-/* 208 */
+/* 235 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
 
-	var transportList = __webpack_require__(209);
+	var transportList = __webpack_require__(236);
 
-	module.exports = __webpack_require__(255)(transportList);
+	module.exports = __webpack_require__(282)(transportList);
 
 	// TODO can't get rid of this until all servers do
 	if ('_sockjs_onload' in global) {
@@ -39124,45 +57685,45 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 209 */
+/* 236 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	module.exports = [
 	  // streaming transports
-	  __webpack_require__(210)
-	, __webpack_require__(226)
-	, __webpack_require__(236)
-	, __webpack_require__(238)
-	, __webpack_require__(241)(__webpack_require__(238))
+	  __webpack_require__(237)
+	, __webpack_require__(253)
+	, __webpack_require__(263)
+	, __webpack_require__(265)
+	, __webpack_require__(268)(__webpack_require__(265))
 
 	  // polling transports
-	, __webpack_require__(248)
-	, __webpack_require__(241)(__webpack_require__(248))
-	, __webpack_require__(250)
-	, __webpack_require__(251)
-	, __webpack_require__(241)(__webpack_require__(250))
-	, __webpack_require__(252)
+	, __webpack_require__(275)
+	, __webpack_require__(268)(__webpack_require__(275))
+	, __webpack_require__(277)
+	, __webpack_require__(278)
+	, __webpack_require__(268)(__webpack_require__(277))
+	, __webpack_require__(279)
 	];
 
 
 /***/ },
-/* 210 */
+/* 237 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var utils = __webpack_require__(211)
-	  , urlUtils = __webpack_require__(214)
-	  , inherits = __webpack_require__(222)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
-	  , WebsocketDriver = __webpack_require__(225)
+	var utils = __webpack_require__(238)
+	  , urlUtils = __webpack_require__(241)
+	  , inherits = __webpack_require__(249)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
+	  , WebsocketDriver = __webpack_require__(252)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:websocket');
+	  debug = __webpack_require__(246)('sockjs-client:websocket');
 	}
 
 	function WebSocketTransport(transUrl, ignore, options) {
@@ -39253,12 +57814,12 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 211 */
+/* 238 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
 
-	var random = __webpack_require__(212);
+	var random = __webpack_require__(239);
 
 	var onUnload = {}
 	  , afterUnload = false
@@ -39333,13 +57894,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 212 */
+/* 239 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	/* global crypto:true */
-	var crypto = __webpack_require__(213);
+	var crypto = __webpack_require__(240);
 
 	// This string has length 32, a power of 2, so the modulus doesn't introduce a
 	// bias.
@@ -39368,7 +57929,7 @@
 
 
 /***/ },
-/* 213 */
+/* 240 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -39392,16 +57953,16 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 214 */
+/* 241 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var URL = __webpack_require__(215);
+	var URL = __webpack_require__(242);
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:utils:url');
+	  debug = __webpack_require__(246)('sockjs-client:utils:url');
 	}
 
 	module.exports = {
@@ -39446,14 +58007,14 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 215 */
+/* 242 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var required = __webpack_require__(216)
-	  , lolcation = __webpack_require__(217)
-	  , qs = __webpack_require__(218)
+	var required = __webpack_require__(243)
+	  , lolcation = __webpack_require__(244)
+	  , qs = __webpack_require__(245)
 	  , protocolre = /^([a-z][a-z0-9.+-]*:)?(\/\/)?([\S\s]*)/i;
 
 	/**
@@ -39809,7 +58370,7 @@
 
 
 /***/ },
-/* 216 */
+/* 243 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -39853,7 +58414,7 @@
 
 
 /***/ },
-/* 217 */
+/* 244 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -39885,7 +58446,7 @@
 	 */
 	module.exports = function lolcation(loc) {
 	  loc = loc || global.location || {};
-	  URL = URL || __webpack_require__(215);
+	  URL = URL || __webpack_require__(242);
 
 	  var finaldestination = {}
 	    , type = typeof loc
@@ -39913,7 +58474,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 218 */
+/* 245 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -39980,7 +58541,7 @@
 
 
 /***/ },
-/* 219 */
+/* 246 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {
@@ -39990,7 +58551,7 @@
 	 * Expose `debug()` as the module.
 	 */
 
-	exports = module.exports = __webpack_require__(220);
+	exports = module.exports = __webpack_require__(247);
 	exports.log = log;
 	exports.formatArgs = formatArgs;
 	exports.save = save;
@@ -40164,7 +58725,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 220 */
+/* 247 */
 /***/ function(module, exports, __webpack_require__) {
 
 	
@@ -40180,7 +58741,7 @@
 	exports.disable = disable;
 	exports.enable = enable;
 	exports.enabled = enabled;
-	exports.humanize = __webpack_require__(221);
+	exports.humanize = __webpack_require__(248);
 
 	/**
 	 * The currently active debug mode names, and names to skip.
@@ -40370,7 +58931,7 @@
 
 
 /***/ },
-/* 221 */
+/* 248 */
 /***/ function(module, exports) {
 
 	/**
@@ -40525,7 +59086,7 @@
 
 
 /***/ },
-/* 222 */
+/* 249 */
 /***/ function(module, exports) {
 
 	if (typeof Object.create === 'function') {
@@ -40554,13 +59115,13 @@
 
 
 /***/ },
-/* 223 */
+/* 250 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , EventTarget = __webpack_require__(224)
+	var inherits = __webpack_require__(249)
+	  , EventTarget = __webpack_require__(251)
 	  ;
 
 	function EventEmitter() {
@@ -40617,7 +59178,7 @@
 
 
 /***/ },
-/* 224 */
+/* 251 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -40685,7 +59246,7 @@
 
 
 /***/ },
-/* 225 */
+/* 252 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -40700,17 +59261,17 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 226 */
+/* 253 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , AjaxBasedTransport = __webpack_require__(227)
-	  , XhrReceiver = __webpack_require__(231)
-	  , XHRCorsObject = __webpack_require__(232)
-	  , XHRLocalObject = __webpack_require__(234)
-	  , browser = __webpack_require__(235)
+	var inherits = __webpack_require__(249)
+	  , AjaxBasedTransport = __webpack_require__(254)
+	  , XhrReceiver = __webpack_require__(258)
+	  , XHRCorsObject = __webpack_require__(259)
+	  , XHRLocalObject = __webpack_require__(261)
+	  , browser = __webpack_require__(262)
 	  ;
 
 	function XhrStreamingTransport(transUrl) {
@@ -40748,19 +59309,19 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 227 */
+/* 254 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , urlUtils = __webpack_require__(214)
-	  , SenderReceiver = __webpack_require__(228)
+	var inherits = __webpack_require__(249)
+	  , urlUtils = __webpack_require__(241)
+	  , SenderReceiver = __webpack_require__(255)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:ajax-based');
+	  debug = __webpack_require__(246)('sockjs-client:ajax-based');
 	}
 
 	function createAjaxSender(AjaxObject) {
@@ -40804,20 +59365,20 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 228 */
+/* 255 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , urlUtils = __webpack_require__(214)
-	  , BufferedSender = __webpack_require__(229)
-	  , Polling = __webpack_require__(230)
+	var inherits = __webpack_require__(249)
+	  , urlUtils = __webpack_require__(241)
+	  , BufferedSender = __webpack_require__(256)
+	  , Polling = __webpack_require__(257)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:sender-receiver');
+	  debug = __webpack_require__(246)('sockjs-client:sender-receiver');
 	}
 
 	function SenderReceiver(transUrl, urlSuffix, senderFunc, Receiver, AjaxObject) {
@@ -40856,18 +59417,18 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 229 */
+/* 256 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
+	var inherits = __webpack_require__(249)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:buffered-sender');
+	  debug = __webpack_require__(246)('sockjs-client:buffered-sender');
 	}
 
 	function BufferedSender(url, sender) {
@@ -40950,18 +59511,18 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 230 */
+/* 257 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
+	var inherits = __webpack_require__(249)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:polling');
+	  debug = __webpack_require__(246)('sockjs-client:polling');
 	}
 
 	function Polling(Receiver, receiveUrl, AjaxObject) {
@@ -41014,18 +59575,18 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 231 */
+/* 258 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
+	var inherits = __webpack_require__(249)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:receiver:xhr');
+	  debug = __webpack_require__(246)('sockjs-client:receiver:xhr');
 	}
 
 	function XhrReceiver(url, AjaxObject) {
@@ -41091,13 +59652,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 232 */
+/* 259 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , XhrDriver = __webpack_require__(233)
+	var inherits = __webpack_require__(249)
+	  , XhrDriver = __webpack_require__(260)
 	  ;
 
 	function XHRCorsObject(method, url, payload, opts) {
@@ -41112,21 +59673,21 @@
 
 
 /***/ },
-/* 233 */
+/* 260 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, process) {'use strict';
 
-	var EventEmitter = __webpack_require__(223).EventEmitter
-	  , inherits = __webpack_require__(222)
-	  , utils = __webpack_require__(211)
-	  , urlUtils = __webpack_require__(214)
+	var EventEmitter = __webpack_require__(250).EventEmitter
+	  , inherits = __webpack_require__(249)
+	  , utils = __webpack_require__(238)
+	  , urlUtils = __webpack_require__(241)
 	  , XHR = global.XMLHttpRequest
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:browser:xhr');
+	  debug = __webpack_require__(246)('sockjs-client:browser:xhr');
 	}
 
 	function AbstractXHRObject(method, url, payload, opts) {
@@ -41312,13 +59873,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(4)))
 
 /***/ },
-/* 234 */
+/* 261 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , XhrDriver = __webpack_require__(233)
+	var inherits = __webpack_require__(249)
+	  , XhrDriver = __webpack_require__(260)
 	  ;
 
 	function XHRLocalObject(method, url, payload /*, opts */) {
@@ -41335,7 +59896,7 @@
 
 
 /***/ },
-/* 235 */
+/* 262 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -41369,15 +59930,15 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 236 */
+/* 263 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , AjaxBasedTransport = __webpack_require__(227)
-	  , XhrReceiver = __webpack_require__(231)
-	  , XDRObject = __webpack_require__(237)
+	var inherits = __webpack_require__(249)
+	  , AjaxBasedTransport = __webpack_require__(254)
+	  , XhrReceiver = __webpack_require__(258)
+	  , XDRObject = __webpack_require__(264)
 	  ;
 
 	// According to:
@@ -41407,21 +59968,21 @@
 
 
 /***/ },
-/* 237 */
+/* 264 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process, global) {'use strict';
 
-	var EventEmitter = __webpack_require__(223).EventEmitter
-	  , inherits = __webpack_require__(222)
-	  , eventUtils = __webpack_require__(211)
-	  , browser = __webpack_require__(235)
-	  , urlUtils = __webpack_require__(214)
+	var EventEmitter = __webpack_require__(250).EventEmitter
+	  , inherits = __webpack_require__(249)
+	  , eventUtils = __webpack_require__(238)
+	  , browser = __webpack_require__(262)
+	  , urlUtils = __webpack_require__(241)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:sender:xdr');
+	  debug = __webpack_require__(246)('sockjs-client:sender:xdr');
 	}
 
 	// References:
@@ -41517,16 +60078,16 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4), (function() { return this; }())))
 
 /***/ },
-/* 238 */
+/* 265 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , AjaxBasedTransport = __webpack_require__(227)
-	  , EventSourceReceiver = __webpack_require__(239)
-	  , XHRCorsObject = __webpack_require__(232)
-	  , EventSourceDriver = __webpack_require__(240)
+	var inherits = __webpack_require__(249)
+	  , AjaxBasedTransport = __webpack_require__(254)
+	  , EventSourceReceiver = __webpack_require__(266)
+	  , XHRCorsObject = __webpack_require__(259)
+	  , EventSourceDriver = __webpack_require__(267)
 	  ;
 
 	function EventSourceTransport(transUrl) {
@@ -41550,19 +60111,19 @@
 
 
 /***/ },
-/* 239 */
+/* 266 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
-	  , EventSourceDriver = __webpack_require__(240)
+	var inherits = __webpack_require__(249)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
+	  , EventSourceDriver = __webpack_require__(267)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:receiver:eventsource');
+	  debug = __webpack_require__(246)('sockjs-client:receiver:eventsource');
 	}
 
 	function EventSourceReceiver(url) {
@@ -41620,7 +60181,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 240 */
+/* 267 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {module.exports = global.EventSource;
@@ -41628,14 +60189,14 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 241 */
+/* 268 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , IframeTransport = __webpack_require__(242)
-	  , objectUtils = __webpack_require__(247)
+	var inherits = __webpack_require__(249)
+	  , IframeTransport = __webpack_require__(269)
+	  , objectUtils = __webpack_require__(274)
 	  ;
 
 	module.exports = function(transport) {
@@ -41668,7 +60229,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 242 */
+/* 269 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -41681,19 +60242,19 @@
 	//    http://msdn.microsoft.com/en-us/library/cc197015(v=VS.85).aspx
 	//    http://stevesouders.com/misc/test-postmessage.php
 
-	var inherits = __webpack_require__(222)
-	  , JSON3 = __webpack_require__(243)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
-	  , version = __webpack_require__(245)
-	  , urlUtils = __webpack_require__(214)
-	  , iframeUtils = __webpack_require__(246)
-	  , eventUtils = __webpack_require__(211)
-	  , random = __webpack_require__(212)
+	var inherits = __webpack_require__(249)
+	  , JSON3 = __webpack_require__(270)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
+	  , version = __webpack_require__(272)
+	  , urlUtils = __webpack_require__(241)
+	  , iframeUtils = __webpack_require__(273)
+	  , eventUtils = __webpack_require__(238)
+	  , random = __webpack_require__(239)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:transport:iframe');
+	  debug = __webpack_require__(246)('sockjs-client:transport:iframe');
 	}
 
 	function IframeTransport(transport, transUrl, baseUrl) {
@@ -41816,14 +60377,14 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 243 */
+/* 270 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/*! JSON v3.3.2 | http://bestiejs.github.io/json3 | Copyright 2012-2014, Kit Cambridge | http://kit.mit-license.org */
 	;(function () {
 	  // Detect the `define` function exposed by asynchronous module loaders. The
 	  // strict `define` check is necessary for compatibility with `r.js`.
-	  var isLoader = "function" === "function" && __webpack_require__(244);
+	  var isLoader = "function" === "function" && __webpack_require__(271);
 
 	  // A set of types used to distinguish objects from primitives.
 	  var objectTypes = {
@@ -42722,10 +61283,10 @@
 	  }
 	}).call(this);
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(200)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(227)(module), (function() { return this; }())))
 
 /***/ },
-/* 244 */
+/* 271 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
@@ -42733,26 +61294,26 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, {}))
 
 /***/ },
-/* 245 */
+/* 272 */
 /***/ function(module, exports) {
 
 	module.exports = '1.1.1';
 
 
 /***/ },
-/* 246 */
+/* 273 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process, global) {'use strict';
 
-	var eventUtils = __webpack_require__(211)
-	  , JSON3 = __webpack_require__(243)
-	  , browser = __webpack_require__(235)
+	var eventUtils = __webpack_require__(238)
+	  , JSON3 = __webpack_require__(270)
+	  , browser = __webpack_require__(262)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:utils:iframe');
+	  debug = __webpack_require__(246)('sockjs-client:utils:iframe');
 	}
 
 	module.exports = {
@@ -42934,7 +61495,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4), (function() { return this; }())))
 
 /***/ },
-/* 247 */
+/* 274 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -42964,15 +61525,15 @@
 
 
 /***/ },
-/* 248 */
+/* 275 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , HtmlfileReceiver = __webpack_require__(249)
-	  , XHRLocalObject = __webpack_require__(234)
-	  , AjaxBasedTransport = __webpack_require__(227)
+	var inherits = __webpack_require__(249)
+	  , HtmlfileReceiver = __webpack_require__(276)
+	  , XHRLocalObject = __webpack_require__(261)
+	  , AjaxBasedTransport = __webpack_require__(254)
 	  ;
 
 	function HtmlFileTransport(transUrl) {
@@ -42995,21 +61556,21 @@
 
 
 /***/ },
-/* 249 */
+/* 276 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process, global) {'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , iframeUtils = __webpack_require__(246)
-	  , urlUtils = __webpack_require__(214)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
-	  , random = __webpack_require__(212)
+	var inherits = __webpack_require__(249)
+	  , iframeUtils = __webpack_require__(273)
+	  , urlUtils = __webpack_require__(241)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
+	  , random = __webpack_require__(239)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:receiver:htmlfile');
+	  debug = __webpack_require__(246)('sockjs-client:receiver:htmlfile');
 	}
 
 	function HtmlfileReceiver(url) {
@@ -43089,16 +61650,16 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4), (function() { return this; }())))
 
 /***/ },
-/* 250 */
+/* 277 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , AjaxBasedTransport = __webpack_require__(227)
-	  , XhrReceiver = __webpack_require__(231)
-	  , XHRCorsObject = __webpack_require__(232)
-	  , XHRLocalObject = __webpack_require__(234)
+	var inherits = __webpack_require__(249)
+	  , AjaxBasedTransport = __webpack_require__(254)
+	  , XhrReceiver = __webpack_require__(258)
+	  , XHRCorsObject = __webpack_require__(259)
+	  , XHRLocalObject = __webpack_require__(261)
 	  ;
 
 	function XhrPollingTransport(transUrl) {
@@ -43128,16 +61689,16 @@
 
 
 /***/ },
-/* 251 */
+/* 278 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , AjaxBasedTransport = __webpack_require__(227)
-	  , XdrStreamingTransport = __webpack_require__(236)
-	  , XhrReceiver = __webpack_require__(231)
-	  , XDRObject = __webpack_require__(237)
+	var inherits = __webpack_require__(249)
+	  , AjaxBasedTransport = __webpack_require__(254)
+	  , XdrStreamingTransport = __webpack_require__(263)
+	  , XhrReceiver = __webpack_require__(258)
+	  , XDRObject = __webpack_require__(264)
 	  ;
 
 	function XdrPollingTransport(transUrl) {
@@ -43157,7 +61718,7 @@
 
 
 /***/ },
-/* 252 */
+/* 279 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -43170,10 +61731,10 @@
 	//   o you will get a spinning cursor
 	//   o for Konqueror a dumb timer is needed to detect errors
 
-	var inherits = __webpack_require__(222)
-	  , SenderReceiver = __webpack_require__(228)
-	  , JsonpReceiver = __webpack_require__(253)
-	  , jsonpSender = __webpack_require__(254)
+	var inherits = __webpack_require__(249)
+	  , SenderReceiver = __webpack_require__(255)
+	  , JsonpReceiver = __webpack_require__(280)
+	  , jsonpSender = __webpack_require__(281)
 	  ;
 
 	function JsonPTransport(transUrl) {
@@ -43198,22 +61759,22 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 253 */
+/* 280 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process, global) {'use strict';
 
-	var utils = __webpack_require__(246)
-	  , random = __webpack_require__(212)
-	  , browser = __webpack_require__(235)
-	  , urlUtils = __webpack_require__(214)
-	  , inherits = __webpack_require__(222)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
+	var utils = __webpack_require__(273)
+	  , random = __webpack_require__(239)
+	  , browser = __webpack_require__(262)
+	  , urlUtils = __webpack_require__(241)
+	  , inherits = __webpack_require__(249)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:receiver:jsonp');
+	  debug = __webpack_require__(246)('sockjs-client:receiver:jsonp');
 	}
 
 	function JsonpReceiver(url) {
@@ -43388,18 +61949,18 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4), (function() { return this; }())))
 
 /***/ },
-/* 254 */
+/* 281 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process, global) {'use strict';
 
-	var random = __webpack_require__(212)
-	  , urlUtils = __webpack_require__(214)
+	var random = __webpack_require__(239)
+	  , urlUtils = __webpack_require__(241)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:sender:jsonp');
+	  debug = __webpack_require__(246)('sockjs-client:sender:jsonp');
 	}
 
 	var form, area;
@@ -43494,35 +62055,35 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4), (function() { return this; }())))
 
 /***/ },
-/* 255 */
+/* 282 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process, global) {'use strict';
 
-	__webpack_require__(256);
+	__webpack_require__(283);
 
-	var URL = __webpack_require__(215)
-	  , inherits = __webpack_require__(222)
-	  , JSON3 = __webpack_require__(243)
-	  , random = __webpack_require__(212)
-	  , escape = __webpack_require__(257)
-	  , urlUtils = __webpack_require__(214)
-	  , eventUtils = __webpack_require__(211)
-	  , transport = __webpack_require__(258)
-	  , objectUtils = __webpack_require__(247)
-	  , browser = __webpack_require__(235)
-	  , log = __webpack_require__(259)
-	  , Event = __webpack_require__(260)
-	  , EventTarget = __webpack_require__(224)
-	  , loc = __webpack_require__(261)
-	  , CloseEvent = __webpack_require__(262)
-	  , TransportMessageEvent = __webpack_require__(263)
-	  , InfoReceiver = __webpack_require__(264)
+	var URL = __webpack_require__(242)
+	  , inherits = __webpack_require__(249)
+	  , JSON3 = __webpack_require__(270)
+	  , random = __webpack_require__(239)
+	  , escape = __webpack_require__(284)
+	  , urlUtils = __webpack_require__(241)
+	  , eventUtils = __webpack_require__(238)
+	  , transport = __webpack_require__(285)
+	  , objectUtils = __webpack_require__(274)
+	  , browser = __webpack_require__(262)
+	  , log = __webpack_require__(286)
+	  , Event = __webpack_require__(287)
+	  , EventTarget = __webpack_require__(251)
+	  , loc = __webpack_require__(288)
+	  , CloseEvent = __webpack_require__(289)
+	  , TransportMessageEvent = __webpack_require__(290)
+	  , InfoReceiver = __webpack_require__(291)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:main');
+	  debug = __webpack_require__(246)('sockjs-client:main');
 	}
 
 	var transports;
@@ -43662,7 +62223,7 @@
 	  this._transport.send(escape.quote(data));
 	};
 
-	SockJS.version = __webpack_require__(245);
+	SockJS.version = __webpack_require__(272);
 
 	SockJS.CONNECTING = 0;
 	SockJS.OPEN = 1;
@@ -43875,14 +62436,14 @@
 
 	module.exports = function(availableTransports) {
 	  transports = transport(availableTransports);
-	  __webpack_require__(269)(SockJS, availableTransports);
+	  __webpack_require__(296)(SockJS, availableTransports);
 	  return SockJS;
 	};
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4), (function() { return this; }())))
 
 /***/ },
-/* 256 */
+/* 283 */
 /***/ function(module, exports) {
 
 	/* eslint-disable */
@@ -44361,12 +62922,12 @@
 
 
 /***/ },
-/* 257 */
+/* 284 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var JSON3 = __webpack_require__(243);
+	var JSON3 = __webpack_require__(270);
 
 	// Some extra characters that Chrome gets wrong, and substitutes with
 	// something else on the wire.
@@ -44416,14 +62977,14 @@
 
 
 /***/ },
-/* 258 */
+/* 285 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:utils:transport');
+	  debug = __webpack_require__(246)('sockjs-client:utils:transport');
 	}
 
 	module.exports = function(availableTransports) {
@@ -44473,7 +63034,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 259 */
+/* 286 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -44498,7 +63059,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 260 */
+/* 287 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -44526,7 +63087,7 @@
 
 
 /***/ },
-/* 261 */
+/* 288 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -44543,13 +63104,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 262 */
+/* 289 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , Event = __webpack_require__(260)
+	var inherits = __webpack_require__(249)
+	  , Event = __webpack_require__(287)
 	  ;
 
 	function CloseEvent() {
@@ -44566,13 +63127,13 @@
 
 
 /***/ },
-/* 263 */
+/* 290 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , Event = __webpack_require__(260)
+	var inherits = __webpack_require__(249)
+	  , Event = __webpack_require__(287)
 	  ;
 
 	function TransportMessageEvent(data) {
@@ -44587,25 +63148,25 @@
 
 
 /***/ },
-/* 264 */
+/* 291 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var EventEmitter = __webpack_require__(223).EventEmitter
-	  , inherits = __webpack_require__(222)
-	  , urlUtils = __webpack_require__(214)
-	  , XDR = __webpack_require__(237)
-	  , XHRCors = __webpack_require__(232)
-	  , XHRLocal = __webpack_require__(234)
-	  , XHRFake = __webpack_require__(265)
-	  , InfoIframe = __webpack_require__(266)
-	  , InfoAjax = __webpack_require__(268)
+	var EventEmitter = __webpack_require__(250).EventEmitter
+	  , inherits = __webpack_require__(249)
+	  , urlUtils = __webpack_require__(241)
+	  , XDR = __webpack_require__(264)
+	  , XHRCors = __webpack_require__(259)
+	  , XHRLocal = __webpack_require__(261)
+	  , XHRFake = __webpack_require__(292)
+	  , InfoIframe = __webpack_require__(293)
+	  , InfoAjax = __webpack_require__(295)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:info-receiver');
+	  debug = __webpack_require__(246)('sockjs-client:info-receiver');
 	}
 
 	function InfoReceiver(baseUrl, urlInfo) {
@@ -44683,13 +63244,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 265 */
+/* 292 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var EventEmitter = __webpack_require__(223).EventEmitter
-	  , inherits = __webpack_require__(222)
+	var EventEmitter = __webpack_require__(250).EventEmitter
+	  , inherits = __webpack_require__(249)
 	  ;
 
 	function XHRFake(/* method, url, payload, opts */) {
@@ -44713,22 +63274,22 @@
 
 
 /***/ },
-/* 266 */
+/* 293 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process, global) {'use strict';
 
-	var EventEmitter = __webpack_require__(223).EventEmitter
-	  , inherits = __webpack_require__(222)
-	  , JSON3 = __webpack_require__(243)
-	  , utils = __webpack_require__(211)
-	  , IframeTransport = __webpack_require__(242)
-	  , InfoReceiverIframe = __webpack_require__(267)
+	var EventEmitter = __webpack_require__(250).EventEmitter
+	  , inherits = __webpack_require__(249)
+	  , JSON3 = __webpack_require__(270)
+	  , utils = __webpack_require__(238)
+	  , IframeTransport = __webpack_require__(269)
+	  , InfoReceiverIframe = __webpack_require__(294)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:info-iframe');
+	  debug = __webpack_require__(246)('sockjs-client:info-iframe');
 	}
 
 	function InfoIframe(baseUrl, url) {
@@ -44789,16 +63350,16 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4), (function() { return this; }())))
 
 /***/ },
-/* 267 */
+/* 294 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var inherits = __webpack_require__(222)
-	  , EventEmitter = __webpack_require__(223).EventEmitter
-	  , JSON3 = __webpack_require__(243)
-	  , XHRLocalObject = __webpack_require__(234)
-	  , InfoAjax = __webpack_require__(268)
+	var inherits = __webpack_require__(249)
+	  , EventEmitter = __webpack_require__(250).EventEmitter
+	  , JSON3 = __webpack_require__(270)
+	  , XHRLocalObject = __webpack_require__(261)
+	  , InfoAjax = __webpack_require__(295)
 	  ;
 
 	function InfoReceiverIframe(transUrl) {
@@ -44828,20 +63389,20 @@
 
 
 /***/ },
-/* 268 */
+/* 295 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var EventEmitter = __webpack_require__(223).EventEmitter
-	  , inherits = __webpack_require__(222)
-	  , JSON3 = __webpack_require__(243)
-	  , objectUtils = __webpack_require__(247)
+	var EventEmitter = __webpack_require__(250).EventEmitter
+	  , inherits = __webpack_require__(249)
+	  , JSON3 = __webpack_require__(270)
+	  , objectUtils = __webpack_require__(274)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:info-ajax');
+	  debug = __webpack_require__(246)('sockjs-client:info-ajax');
 	}
 
 	function InfoAjax(url, AjaxObject) {
@@ -44884,23 +63445,23 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 269 */
+/* 296 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
-	var urlUtils = __webpack_require__(214)
-	  , eventUtils = __webpack_require__(211)
-	  , JSON3 = __webpack_require__(243)
-	  , FacadeJS = __webpack_require__(270)
-	  , InfoIframeReceiver = __webpack_require__(267)
-	  , iframeUtils = __webpack_require__(246)
-	  , loc = __webpack_require__(261)
+	var urlUtils = __webpack_require__(241)
+	  , eventUtils = __webpack_require__(238)
+	  , JSON3 = __webpack_require__(270)
+	  , FacadeJS = __webpack_require__(297)
+	  , InfoIframeReceiver = __webpack_require__(294)
+	  , iframeUtils = __webpack_require__(273)
+	  , loc = __webpack_require__(288)
 	  ;
 
 	var debug = function() {};
 	if (process.env.NODE_ENV !== 'production') {
-	  debug = __webpack_require__(219)('sockjs-client:iframe-bootstrap');
+	  debug = __webpack_require__(246)('sockjs-client:iframe-bootstrap');
 	}
 
 	module.exports = function(SockJS, availableTransports) {
@@ -44993,13 +63554,13 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 270 */
+/* 297 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var JSON3 = __webpack_require__(243)
-	  , iframeUtils = __webpack_require__(246)
+	var JSON3 = __webpack_require__(270)
+	  , iframeUtils = __webpack_require__(273)
 	  ;
 
 	function FacadeJS(transport) {
