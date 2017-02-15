@@ -6,10 +6,42 @@ export default class ExampleChart extends React.Component {
 		super(props);
 		this.state = {
 			options:{
-				title: 'Age vs. Weight comparison',
-				hAxis: {title: 'Age', minValue: 0, maxValue: 15},
-				vAxis: {title: 'Weight', minValue: 0, maxValue: 15},
-				legend: 'none'
+				title: this.props.chartTitle,
+				titleTextStyle: {
+						color: 'white'
+				},
+				hAxis: {
+					title: 'Age',
+					titleTextStyle: {
+						color: 'white'
+					}, 
+					minValue: 0, 
+					maxValue: 15,
+					textStyle: {
+						color: 'white'
+					}
+				},
+				vAxis: {
+					title: 'Weight',
+					titleTextStyle: {
+						color: 'white'
+					}, 
+					minValue: 0, 
+					maxValue: 15,
+					textStyle: {
+						color: 'white'
+					}
+				},
+				legend: 'none',
+				backgroundColor: {
+					fill: 'transparent',
+				},
+				chartArea: {
+					backgroundColor: {
+						fill:'black',
+					},
+					dataOpacity: 1
+				},
 			},
 			data:[
 				['Age', 'Weight'],
@@ -27,7 +59,7 @@ export default class ExampleChart extends React.Component {
 		return (
 			<div id="charts">
 			<Chart
-        		chartType="ScatterChart"
+        		chartType="Histogram"
         		data={this.state.data}
 		        options={this.state.options}
 		        graph_id="1"

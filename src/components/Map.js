@@ -48,7 +48,9 @@ export default class LeafletMap extends React.Component {
 			youbikeGeojson: null,
 			mrtLinesFilter: '*',
 			numStations: null,
-			displayChart: false
+			displayChart: false,
+			chartTitle: null,
+			chartData: null
 		};
 
 		this._mapNode = null;
@@ -138,11 +140,6 @@ export default class LeafletMap extends React.Component {
 		console.log("filterGeoJSONLayer");
 		this.state.mrtGeojsonLayer.clearLayers();
 		this.state.mrtGeojsonLayer.addData(mrtGeojson);
-		// this.zoomToFeature(this.state.geojsonLayer);
-	}
-
-	zoomToFeature(target) {
-
 	}
 
 	filterFeatures(feature, layer) {
@@ -193,7 +190,7 @@ export default class LeafletMap extends React.Component {
 				}
 			}
 
-			const popupContent = "<h3>${feature.properties.name}</h3><strong>MRT line:</strong>${feature.properties.line}";
+			const popupContent = "<h3>"+ feature.properties.name+"</h3><strong>MRT line:</strong> "+ feature.properties.line;
 			layer.bindPopup(popupContent);
 			layer.on('click',this.onMarkClick);
 		}
@@ -201,7 +198,11 @@ export default class LeafletMap extends React.Component {
 
 	onMarkClick(e) {
 		console.log(e.target.feature.properties.name);
-		this.setState({displayChart: true});
+		this.setState({
+			displayChart: true,
+			chartTitle: e.target.feature.properties.name,
+			chartData: [0,1,2,3,4]
+		});
 	}
 
 	onMapClick(e) {
@@ -237,13 +238,13 @@ export default class LeafletMap extends React.Component {
 								filterLines={ this.updateMap } />
 				}
 				{
-					this.state.displayChart &&
+					this.state.displayChart && this.state.chartTitle.length &&
 					<ReactCSSTransitionGroup 
 						transitionName="slideInFromRightSide"
 						transitionEnterTimeout={2000}
 						transitionLeaveTimeout={300}>
 						<div id="chartArea">
-							<ExampleChart />
+							<ExampleChart  chartTitle= {this.state.chartTitle} chartData={this.state.chartData} />
 						</div>
 					</ReactCSSTransitionGroup>
 				}
