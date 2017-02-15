@@ -21892,7 +21892,9 @@
 				youbikeGeojson: null,
 				mrtLinesFilter: '*',
 				numStations: null,
-				displayChart: false
+				displayChart: false,
+				chartTitle: null,
+				chartData: null
 			};
 
 			_this._mapNode = null;
@@ -21991,11 +21993,7 @@
 				console.log("filterGeoJSONLayer");
 				this.state.mrtGeojsonLayer.clearLayers();
 				this.state.mrtGeojsonLayer.addData(_mrt2.default);
-				// this.zoomToFeature(this.state.geojsonLayer);
 			}
-		}, {
-			key: 'zoomToFeature',
-			value: function zoomToFeature(target) {}
 		}, {
 			key: 'filterFeatures',
 			value: function filterFeatures(feature, layer) {
@@ -22049,7 +22047,7 @@
 						}
 					}
 
-					var popupContent = "<h3>${feature.properties.name}</h3><strong>MRT line:</strong>${feature.properties.line}";
+					var popupContent = "<h3>" + feature.properties.name + "</h3><strong>MRT line:</strong> " + feature.properties.line;
 					layer.bindPopup(popupContent);
 					layer.on('click', this.onMarkClick);
 				}
@@ -22058,7 +22056,11 @@
 			key: 'onMarkClick',
 			value: function onMarkClick(e) {
 				console.log(e.target.feature.properties.name);
-				this.setState({ displayChart: true });
+				this.setState({
+					displayChart: true,
+					chartTitle: e.target.feature.properties.name,
+					chartData: [0, 1, 2, 3, 4]
+				});
 			}
 		}, {
 			key: 'onMapClick',
@@ -22096,7 +22098,7 @@
 					mrtLineNames.length && _react2.default.createElement(_Filter2.default, { lines: mrtLineNames,
 						curFilter: mrtLinesFilter,
 						filterLines: this.updateMap }),
-					this.state.displayChart && _react2.default.createElement(
+					this.state.displayChart && this.state.chartTitle.length && _react2.default.createElement(
 						_reactAddonsCssTransitionGroup2.default,
 						{
 							transitionName: 'slideInFromRightSide',
@@ -22105,7 +22107,7 @@
 						_react2.default.createElement(
 							'div',
 							{ id: 'chartArea' },
-							_react2.default.createElement(_GoogleChart2.default, null)
+							_react2.default.createElement(_GoogleChart2.default, { chartTitle: this.state.chartTitle, chartData: this.state.chartData })
 						)
 					),
 					_react2.default.createElement('div', { ref: function ref(node) {
@@ -35678,7 +35680,7 @@
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function Filter(props) {
-	    console.log(props);
+	    // console.log(props);
 	    return _react2.default.createElement(
 	        "div",
 	        { className: "filterMRTLines" },
@@ -35750,10 +35752,42 @@
 
 			_this.state = {
 				options: {
-					title: 'Age vs. Weight comparison',
-					hAxis: { title: 'Age', minValue: 0, maxValue: 15 },
-					vAxis: { title: 'Weight', minValue: 0, maxValue: 15 },
-					legend: 'none'
+					title: _this.props.chartTitle,
+					titleTextStyle: {
+						color: 'white'
+					},
+					hAxis: {
+						title: 'Age',
+						titleTextStyle: {
+							color: 'white'
+						},
+						minValue: 0,
+						maxValue: 15,
+						textStyle: {
+							color: 'white'
+						}
+					},
+					vAxis: {
+						title: 'Weight',
+						titleTextStyle: {
+							color: 'white'
+						},
+						minValue: 0,
+						maxValue: 15,
+						textStyle: {
+							color: 'white'
+						}
+					},
+					legend: 'none',
+					backgroundColor: {
+						fill: 'transparent'
+					},
+					chartArea: {
+						backgroundColor: {
+							fill: 'black'
+						},
+						dataOpacity: 1
+					}
 				},
 				data: [['Age', 'Weight'], [8, 12], [4, 5.5], [11, 14], [4, 5], [3, 3.5], [6.5, 7]]
 			};
@@ -35767,7 +35801,7 @@
 					'div',
 					{ id: 'charts' },
 					_react2.default.createElement(_reactGoogleCharts.Chart, {
-						chartType: 'ScatterChart',
+						chartType: 'Histogram',
 						data: this.state.data,
 						options: this.state.options,
 						graph_id: '1',
