@@ -3,14 +3,16 @@ var path = require('path');
 
 module.exports = {
     entry: [
-        './src/index',
-        'webpack-dev-server/client?http://127.0.0.1:8080/',
+        'webpack-dev-server/client?http://localhost:3000',
+        'webpack/hot/only-dev-server',
+        './src/index'
     ],
     output: {
-        path: path.join(__dirname, 'public'),
+        path: path.join(__dirname, 'dist'),
         filename: "bundle.js"
     },
     resolve: {
+        modules: [path.resolve(__dirname, "src"), "node_modules"],
         moduleDirectories: ['node_modules','src'],
         extensions: ['','.js','.json']
     },
@@ -20,10 +22,7 @@ module.exports = {
                 test: /\.jsx?$/,
                 include: [__dirname + "/src"],
                 exclude: /node_modules/,
-                loader: ['babel-loader'],
-                query: {
-                    presets: ['es2015','react']
-                }
+                loaders: ['react-hot-loader','babel-loader'],
             },
             {
                 test: /\.css$/,
@@ -40,7 +39,14 @@ module.exports = {
             {
                 test: /\.json$/,
                 loader: 'json',
+            },
+            {
+                test: /\.mp4$/,
+                loader: 'url?limit=10000&mimetype=video/mp4'
             }
         ]
-    }
+    },
+    plugins: [
+        new webpack.HotModuleReplacementPlugin()
+    ],
 };

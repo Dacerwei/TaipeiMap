@@ -2,16 +2,17 @@ import { Chart } from 'react-google-charts';
 import React from 'react';
 
 export default class ExampleChart extends React.Component {
+
 	constructor(props) {
 		super(props);
 		this.state = {
-			options:{
+			options: {
 				title: this.props.chartTitle,
 				titleTextStyle: {
 						color: 'white'
 				},
 				hAxis: {
-					title: 'Age',
+					title: 'Time',
 					titleTextStyle: {
 						color: 'white'
 					}, 
@@ -22,7 +23,7 @@ export default class ExampleChart extends React.Component {
 					}
 				},
 				vAxis: {
-					title: 'Weight',
+					title: 'Fraquency',
 					titleTextStyle: {
 						color: 'white'
 					}, 
@@ -34,44 +35,94 @@ export default class ExampleChart extends React.Component {
 				},
 				legend: 'none',
 				backgroundColor: {
-					fill: 'transparent',
+					fill: 'transparent'
 				},
 				chartArea: {
 					backgroundColor: {
-						fill:'black',
+						fill:'black'
 					},
 					dataOpacity: 1
 				},
+				isStacked: true
 			},
-			data:[
-				['Age', 'Weight'],
-            	[8,12],
-            	[4,5.5],
-            	[11,14],
-            	[4,5],
-            	[3,3.5],
-            	[6.5,7]
-            ]
+			data: this.props.chartData
         };
 	}
 
+	shouldComponentUpdate(nextProps, nextState) {
+		console.log('shouldComponentUpdate');
+		if(nextProps.chartTitle !== this.props.chartTitle ) {
+			return true;
+		}else{
+			return false;
+		}
+	}
+
+	componentWillReceiveProps(nextProps) {
+		console.log('componentWillRecieveProps');
+		this.setState({ 
+			options: {
+				title: nextProps.chartTitle,
+				titleTextStyle: {
+						color: 'white'
+				},
+				hAxis: {
+					title: 'Time',
+					titleTextStyle: {
+						color: 'white'
+					}, 
+					minValue: 0, 
+					maxValue: 15,
+					textStyle: {
+						color: 'white'
+					}
+				},
+				vAxis: {
+					title: 'Fraquency',
+					titleTextStyle: {
+						color: 'white'
+					}, 
+					minValue: 0, 
+					maxValue: 15,
+					textStyle: {
+						color: 'white'
+					}
+				},
+				legend: 'none',
+				backgroundColor: {
+					fill: 'transparent'
+				},
+				chartArea: {
+					backgroundColor: {
+						fill:'black'
+					},
+					dataOpacity: 1
+				},
+				isStacked: true
+			},
+			data: this.props.chartData
+		});
+	}
+
+
 	render() {
+		console.log('render chart');
 		return (
 			<div id="charts">
 			<Chart
-        		chartType="Histogram"
+        		chartType="LineChart"
         		data={this.state.data}
-		        options={this.state.options}
-		        graph_id="1"
+		        options={ this.state.options }
+		        graph_id="2"
 		        width="100%"
 		        height="50%"
 		        legend_toggle
 		    />
-		    <Chart
-        		chartType="ScatterChart"
+			<Chart
+        		chartType="Histogram"
         		data={this.state.data}
-		        options={this.state.options}
-		        graph_id="2"
+		        options={ this.state.options }
+		        graph_id="1"
 		        width="100%"
 		        height="50%"
 		        legend_toggle
