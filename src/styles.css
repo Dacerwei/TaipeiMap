@@ -56,6 +56,12 @@ html, body {
   margin: 0 auto;
 }
 
+.filterMRTLines .layer-control {
+  display: block;
+  margin: 5px auto;
+  text-align: center; 
+}
+
 .slideInFromRightSide-enter {
   right: -30%;
 }
@@ -75,4 +81,12 @@ html, body {
 
 #chartArea #charts {
   height: 100%;
+}
+
+#wrapper-slider {
+  position: absolute;
+  left: 400px;
+  bottom: 20px;
+  z-index: 50;
+  width: 25%;
 }

@@ -1,6 +1,8 @@
 import React from 'react';
 import L from 'leaflet';
+import Slider from 'rc-slider';
 
+import 'rc-slider/assets/index.css';
 import 'leaflet/dist/leaflet.css';
 import Filter from './Filter';
 import ExampleChart from './GoogleChart';
@@ -48,6 +50,7 @@ export default class LeafletMap extends React.Component {
 			youbikeGeojson: null,
 			mrtLinesFilter: '*',
 			numStations: null,
+			sliderValue:0,
 			displayChart: false,
 			displayYoubikeLayer: true,
 			chartTitle: null,
@@ -64,6 +67,8 @@ export default class LeafletMap extends React.Component {
 		this.youbikePointToLayer = this.youbikePointToLayer.bind(this);
 		this.onMarkClick = this.onMarkClick.bind(this);
 		this.onMapClick = this.onMapClick.bind(this);
+		this.onSliderChange = this.onSliderChange.bind(this);
+		this.getColor = this.getColor.bind(this);
 	}
  
 	componentDidMount() {
@@ -88,13 +93,12 @@ export default class LeafletMap extends React.Component {
 
 		if(this.state.map && this.state.youbikeGeojsonLayer ) {
 			if(this.state.displayYoubikeLayer) {
-				console.log("displayYoubikeLayer is TRUE");
 				this.state.youbikeGeojsonLayer.addTo(this.state.map);
 			} else {
-				console.log("displayYoubikeLayer is FALSE");
 				this.state.map.removeLayer(this.state.youbikeGeojsonLayer);
 			}
 		}
+		console.log('state sliderValue: '+this.state.sliderValue);
 	}
 
 	componontWillUnmount() {
@@ -122,16 +126,13 @@ export default class LeafletMap extends React.Component {
 	}
 
 	openYoubikeLayer(e) {
-		console.log(e.target.checked);
 		let isOpen = e.target.checked;
 
 		if(isOpen === true){
-			console.log("setState displayYoubikeLayer is TRUE");
 			this.setState({
 				displayYoubikeLayer: true
 			})
 		}else {
-			console.log("setState displayYoubikeLayer is FALSE");			
 			this.setState({
 				displayYoubikeLayer: false
 			})
@@ -176,9 +177,10 @@ export default class LeafletMap extends React.Component {
 	}
 
 	mrtPointToLayer(feature, latlng) {
+		let ColorValue = feature.properties['data'][this.state.sliderValue][1];
 		var markerParams = {
 			radius: 5,
-			fillColor: 'orange',
+			fillColor: this.getColor(ColorValue),
 			color: '#fff',
 			weight: 1,
 			opacity: 0.5,
@@ -237,6 +239,23 @@ export default class LeafletMap extends React.Component {
 		this.setState({displayChart: false});
 	}
 
+	onSliderChange(e) {
+		console.log('event value: '+e);
+		this.setState({sliderValue: e});
+	}
+
+	getColor(value) {
+		if(value > 200) {
+			return '#FF0000';
+		}else if( value >= 50) {
+			return '#E8B50C';
+		}else if( value >= 0) {
+			return '#00FF60';
+		}else {
+			return 'gray';
+		}
+	}
+
 	init(id) {
 		if(this.state.map) return;
 
@@ -260,7 +279,6 @@ export default class LeafletMap extends React.Component {
 				{
 					mrtLineNames.length &&
 						<Filter lines={ mrtLineNames }
-								// curYoubikeLayer = { displayYoubikeLayer }
 								openYoubikeLayer={ this.openYoubikeLayer }
 								curFilter={ mrtLinesFilter }
 								filterLines={ this.updateMap }
@@ -275,8 +293,11 @@ export default class LeafletMap extends React.Component {
 						<div id="chartArea">
 							<ExampleChart  chartTitle= { this.state.chartTitle } chartData={ this.state.chartData } />
 						</div>
-					</ReactCSSTransitionGroup>
+					</ReactCSSTransitionGroup>	
 				}
+				<div id="wrapper-slider">
+					<Slider min={0} max={100} onChange={ this.onSliderChange } />
+				</div>
 				<div ref={(node) => this._mapNode = node} id="map" />
 			</div>
 		);

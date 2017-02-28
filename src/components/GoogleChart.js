@@ -50,7 +50,6 @@ export default class ExampleChart extends React.Component {
 	}
 
 	shouldComponentUpdate(nextProps, nextState) {
-		console.log('shouldComponentUpdate');
 		if(nextProps.chartTitle !== this.props.chartTitle ) {
 			return true;
 		}else{
@@ -59,7 +58,6 @@ export default class ExampleChart extends React.Component {
 	}
 
 	componentWillReceiveProps(nextProps) {
-		console.log('componentWillRecieveProps');
 		this.setState({ 
 			options: {
 				title: nextProps.chartTitle,
@@ -106,7 +104,6 @@ export default class ExampleChart extends React.Component {
 
 
 	render() {
-		console.log('render chart');
 		return (
 			<div id="charts">
 			<Chart
