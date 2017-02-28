@@ -49,12 +49,14 @@ export default class LeafletMap extends React.Component {
 			mrtLinesFilter: '*',
 			numStations: null,
 			displayChart: false,
+			displayYoubikeLayer: true,
 			chartTitle: null,
 			chartData: null
 		};
 
 		this._mapNode = null;
 		this.updateMap = this.updateMap.bind(this);
+		this.openYoubikeLayer = this.openYoubikeLayer.bind(this);
 		this.onEachFeature = this.onEachFeature.bind(this);
 		this.mrtPointToLayer = this.mrtPointToLayer.bind(this);
 		this.filterFeatures = this.filterFeatures.bind(this);
@@ -83,6 +85,16 @@ export default class LeafletMap extends React.Component {
 		if (this.state.mrtLinesFilter !== prevState.mrtLinesFilter) {
 			this.filterGeoJSONLayer();
 		}
+
+		if(this.state.map && this.state.youbikeGeojsonLayer ) {
+			if(this.state.displayYoubikeLayer) {
+				console.log("displayYoubikeLayer is TRUE");
+				this.state.youbikeGeojsonLayer.addTo(this.state.map);
+			} else {
+				console.log("displayYoubikeLayer is FALSE");
+				this.state.map.removeLayer(this.state.youbikeGeojsonLayer);
+			}
+		}
 	}
 
 	componontWillUnmount() {
@@ -107,6 +119,24 @@ export default class LeafletMap extends React.Component {
 		this.setState({
 			mrtLinesFilter: mrtLine
 		});
+	}
+
+	openYoubikeLayer(e) {
+		console.log(e.target.checked);
+		let isOpen = e.target.checked;
+
+		if(isOpen === true){
+			console.log("setState displayYoubikeLayer is TRUE");
+			this.setState({
+				displayYoubikeLayer: true
+			})
+		}else {
+			console.log("setState displayYoubikeLayer is FALSE");			
+			this.setState({
+				displayYoubikeLayer: false
+			})
+		}
+
 	}
 
 	addGeoJSONLayer(geojson) {
@@ -192,8 +222,6 @@ export default class LeafletMap extends React.Component {
 	}
 
 	onMarkClick(e) {
-		// console.log(e.target.feature.properties.name);
-		// console.log(e.target.feature.properties.data);
 
 		let chartData = e.target.feature.properties.data;
 		chartData = [['time', 'enter','leave']].concat(chartData);
@@ -206,7 +234,6 @@ export default class LeafletMap extends React.Component {
 	}
 
 	onMapClick(e) {
-		console.log("chart close");
 		this.setState({displayChart: false});
 	}
 
@@ -226,14 +253,18 @@ export default class LeafletMap extends React.Component {
 	render() {
 
 		const { mrtLinesFilter } = this.state;
+		const { displayYoubikeLayer } = this.state;
 
 		return (
 			<div id="mapUI">
 				{
 					mrtLineNames.length &&
 						<Filter lines={ mrtLineNames }
+								// curYoubikeLayer = { displayYoubikeLayer }
+								openYoubikeLayer={ this.openYoubikeLayer }
 								curFilter={ mrtLinesFilter }
-								filterLines={ this.updateMap } />
+								filterLines={ this.updateMap }
+								/>
 				}
 				{
 					this.state.displayChart &&

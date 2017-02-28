@@ -65,7 +65,7 @@
 /******/ 	}
 /******/ 	
 /******/ 	var hotApplyOnUpdate = true;
-/******/ 	var hotCurrentHash = "1e446d8d8ea06fda3190"; // eslint-disable-line no-unused-vars
+/******/ 	var hotCurrentHash = "0f8feb318c35a7f8c238"; // eslint-disable-line no-unused-vars
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentParents = []; // eslint-disable-line no-unused-vars
 /******/ 	
@@ -30568,12 +30568,14 @@
 				mrtLinesFilter: '*',
 				numStations: null,
 				displayChart: false,
+				displayYoubikeLayer: true,
 				chartTitle: null,
 				chartData: null
 			};
 
 			_this._mapNode = null;
 			_this.updateMap = _this.updateMap.bind(_this);
+			_this.openYoubikeLayer = _this.openYoubikeLayer.bind(_this);
 			_this.onEachFeature = _this.onEachFeature.bind(_this);
 			_this.mrtPointToLayer = _this.mrtPointToLayer.bind(_this);
 			_this.filterFeatures = _this.filterFeatures.bind(_this);
@@ -30606,6 +30608,16 @@
 				if (this.state.mrtLinesFilter !== prevState.mrtLinesFilter) {
 					this.filterGeoJSONLayer();
 				}
+
+				if (this.state.map && this.state.youbikeGeojsonLayer) {
+					if (this.state.displayYoubikeLayer) {
+						console.log("displayYoubikeLayer is TRUE");
+						this.state.youbikeGeojsonLayer.addTo(this.state.map);
+					} else {
+						console.log("displayYoubikeLayer is FALSE");
+						this.state.map.removeLayer(this.state.youbikeGeojsonLayer);
+					}
+				}
 			}
 		}, {
 			key: 'componontWillUnmount',
@@ -30633,6 +30645,24 @@
 				this.setState({
 					mrtLinesFilter: mrtLine
 				});
+			}
+		}, {
+			key: 'openYoubikeLayer',
+			value: function openYoubikeLayer(e) {
+				console.log(e.target.checked);
+				var isOpen = e.target.checked;
+
+				if (isOpen === true) {
+					console.log("setState displayYoubikeLayer is TRUE");
+					this.setState({
+						displayYoubikeLayer: true
+					});
+				} else {
+					console.log("setState displayYoubikeLayer is FALSE");
+					this.setState({
+						displayYoubikeLayer: false
+					});
+				}
 			}
 		}, {
 			key: 'addGeoJSONLayer',
@@ -30724,8 +30754,6 @@
 		}, {
 			key: 'onMarkClick',
 			value: function onMarkClick(e) {
-				// console.log(e.target.feature.properties.name);
-				// console.log(e.target.feature.properties.data);
 
 				var chartData = e.target.feature.properties.data;
 				chartData = [['time', 'enter', 'leave']].concat(chartData);
@@ -30739,7 +30767,6 @@
 		}, {
 			key: 'onMapClick',
 			value: function onMapClick(e) {
-				console.log("chart close");
 				this.setState({ displayChart: false });
 			}
 		}, {
@@ -30761,14 +30788,18 @@
 				var _this2 = this;
 
 				var mrtLinesFilter = this.state.mrtLinesFilter;
+				var displayYoubikeLayer = this.state.displayYoubikeLayer;
 
 
 				return _react2.default.createElement(
 					'div',
 					{ id: 'mapUI' },
-					mrtLineNames.length && _react2.default.createElement(_Filter2.default, { lines: mrtLineNames,
+					mrtLineNames.length && _react2.default.createElement(_Filter2.default, { lines: mrtLineNames
+						// curYoubikeLayer = { displayYoubikeLayer }
+						, openYoubikeLayer: this.openYoubikeLayer,
 						curFilter: mrtLinesFilter,
-						filterLines: this.updateMap }),
+						filterLines: this.updateMap
+					}),
 					this.state.displayChart && _react2.default.createElement(
 						_reactAddonsCssTransitionGroup2.default,
 						{
@@ -44389,7 +44420,11 @@
 	        _react2.default.createElement(
 	            "label",
 	            null,
-	            _react2.default.createElement("input", { type: "checkbox", value: "YouBike Show" }),
+	            _react2.default.createElement("input", { type: "checkbox",
+	                defaultChecked: "checked",
+	                onChange: function onChange(e) {
+	                    return props.openYoubikeLayer(e);
+	                } }),
 	            "YouBike Station layer"
 	        )
 	    );

@@ -18,7 +18,9 @@ function Filter(props) {
                     }, this)
                 }
                 </select>
-                <label><input type="checkbox" value="YouBike Show" />YouBike Station layer</label>
+                <label><input type="checkbox"
+                            defaultChecked="checked"
+                            onChange={(e) => props.openYoubikeLayer(e)} />YouBike Station layer</label>
         </div>
     );
 };
