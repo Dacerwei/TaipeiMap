@@ -65,7 +65,7 @@
 /******/ 	}
 /******/ 	
 /******/ 	var hotApplyOnUpdate = true;
-/******/ 	var hotCurrentHash = "b7512683edb6e38a7cfe"; // eslint-disable-line no-unused-vars
+/******/ 	var hotCurrentHash = "6c2df81c8a1b2dc1b060"; // eslint-disable-line no-unused-vars
 /******/ 	var hotCurrentModuleData = {};
 /******/ 	var hotCurrentParents = []; // eslint-disable-line no-unused-vars
 /******/ 	
@@ -8512,7 +8512,7 @@
 
 	var _Map2 = _interopRequireDefault(_Map);
 
-	__webpack_require__(460);
+	__webpack_require__(461);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -30510,15 +30510,19 @@
 
 	var _GoogleChart2 = _interopRequireDefault(_GoogleChart);
 
-	var _mrtData = __webpack_require__(444);
+	var _TimeFilter = __webpack_require__(444);
+
+	var _TimeFilter2 = _interopRequireDefault(_TimeFilter);
+
+	var _mrtData = __webpack_require__(445);
 
 	var _mrtData2 = _interopRequireDefault(_mrtData);
 
-	var _youbike = __webpack_require__(445);
+	var _youbike = __webpack_require__(446);
 
 	var _youbike2 = _interopRequireDefault(_youbike);
 
-	var _reactAddonsCssTransitionGroup = __webpack_require__(446);
+	var _reactAddonsCssTransitionGroup = __webpack_require__(447);
 
 	var _reactAddonsCssTransitionGroup2 = _interopRequireDefault(_reactAddonsCssTransitionGroup);
 
@@ -30574,8 +30578,9 @@
 				mrtLinesFilter: '*',
 				numStations: null,
 				sliderValue: 0,
-				displayChart: false,
+				displayMrtLayer: true,
 				displayYoubikeLayer: true,
+				displayChart: false,
 				chartTitle: null,
 				chartData: null
 			};
@@ -30583,8 +30588,10 @@
 			_this._mapNode = null;
 			_this.updateMap = _this.updateMap.bind(_this);
 			_this.openYoubikeLayer = _this.openYoubikeLayer.bind(_this);
+			_this.openMrtLayer = _this.openMrtLayer.bind(_this);
 			_this.onEachFeature = _this.onEachFeature.bind(_this);
 			_this.mrtPointToLayer = _this.mrtPointToLayer.bind(_this);
+			_this.mrtMarkerStyle = _this.mrtMarkerStyle.bind(_this);
 			_this.filterFeatures = _this.filterFeatures.bind(_this);
 			_this.filterGeoJSONLayer = _this.filterGeoJSONLayer.bind(_this);
 			_this.youbikePointToLayer = _this.youbikePointToLayer.bind(_this);
@@ -30611,6 +30618,9 @@
 
 				if (this.state.mrtGeojson && this.state.map && !this.state.mrtGeojsonLayer) {
 					this.addGeoJSONLayer(this.state.mrtGeojson);
+				}
+
+				if (this.state.youbikeGeojson && this.state.map && !this.state.youbikeGeojsonLayer) {
 					this.addGeoJSONLayer(this.state.youbikeGeojson);
 				}
 
@@ -30618,14 +30628,21 @@
 					this.filterGeoJSONLayer();
 				}
 
-				if (this.state.map && this.state.youbikeGeojsonLayer) {
+				if (this.state.displayMrtLayer !== prevState.displayMrtLayer) {
+					if (this.state.displayMrtLayer) {
+						this.state.mrtGeojsonLayer.addTo(this.state.map);
+					} else {
+						this.state.map.removeLayer(this.state.mrtGeojsonLayer);
+					}
+				}
+
+				if (this.state.displayYoubikeLayer !== prevState.displayYoubikeLayer) {
 					if (this.state.displayYoubikeLayer) {
 						this.state.youbikeGeojsonLayer.addTo(this.state.map);
 					} else {
 						this.state.map.removeLayer(this.state.youbikeGeojsonLayer);
 					}
 				}
-				console.log('state sliderValue: ' + this.state.sliderValue);
 			}
 		}, {
 			key: 'componontWillUnmount',
@@ -30670,6 +30687,21 @@
 				}
 			}
 		}, {
+			key: 'openMrtLayer',
+			value: function openMrtLayer(e) {
+				var isOpen = e.target.checked;
+
+				if (isOpen === true) {
+					this.setState({
+						displayMrtLayer: true
+					});
+				} else {
+					this.setState({
+						displayMrtLayer: false
+					});
+				}
+			}
+		}, {
 			key: 'addGeoJSONLayer',
 			value: function addGeoJSONLayer(geojson) {
 
@@ -30677,6 +30709,7 @@
 					var mrtGeojsonLayer = _leaflet2.default.geoJSON(geojson, {
 						onEachFeature: this.onEachFeature,
 						pointToLayer: this.mrtPointToLayer,
+						style: this.mrtMarkerStyle,
 						filter: this.filterFeatures
 					});
 
@@ -30758,6 +30791,20 @@
 				}
 			}
 		}, {
+			key: 'mrtMarkerStyle',
+			value: function mrtMarkerStyle(feature) {
+				var ColorValue = feature.properties['data'][this.state.sliderValue][1];
+				var markerParams = {
+					radius: 5,
+					fillColor: this.getColor(ColorValue),
+					color: '#fff',
+					weight: 1,
+					opacity: 0.5,
+					fillOpacity: 0.8
+				};
+				return markerParams;
+			}
+		}, {
 			key: 'onMarkClick',
 			value: function onMarkClick(e) {
 
@@ -30778,8 +30825,8 @@
 		}, {
 			key: 'onSliderChange',
 			value: function onSliderChange(e) {
-				console.log('event value: ' + e);
 				this.setState({ sliderValue: e });
+				this.state.mrtGeojsonLayer.setStyle(this.mrtMarkerStyle);
 			}
 		}, {
 			key: 'getColor',
@@ -30805,6 +30852,7 @@
 
 				var tileLayer = _leaflet2.default.tileLayer(config.tileLayer.uri, config.tileLayer.params).addTo(map);
 				this.setState({ map: map, tileLayer: tileLayer });
+
 				map.on('click', this.onMapClick);
 			}
 		}, {
@@ -30821,9 +30869,9 @@
 					{ id: 'mapUI' },
 					mrtLineNames.length && _react2.default.createElement(_Filter2.default, { lines: mrtLineNames,
 						openYoubikeLayer: this.openYoubikeLayer,
+						openMrtLayer: this.openMrtLayer,
 						curFilter: mrtLinesFilter,
-						filterLines: this.updateMap
-					}),
+						filterLines: this.updateMap }),
 					this.state.displayChart && _react2.default.createElement(
 						_reactAddonsCssTransitionGroup2.default,
 						{
@@ -30836,11 +30884,7 @@
 							_react2.default.createElement(_GoogleChart2.default, { chartTitle: this.state.chartTitle, chartData: this.state.chartData })
 						)
 					),
-					_react2.default.createElement(
-						'div',
-						{ id: 'wrapper-slider' },
-						_react2.default.createElement(_rcSlider2.default, { min: 0, max: 100, onChange: this.onSliderChange })
-					),
+					this.state.mrtGeojson && _react2.default.createElement(_TimeFilter2.default, { dataSet: this.state.mrtGeojson.features[0].properties.data, callback: this.onSliderChange }),
 					_react2.default.createElement('div', { ref: function ref(node) {
 							return _this2._mapNode = node;
 						}, id: 'map' })
@@ -52133,12 +52177,28 @@
 	        _react2.default.createElement(
 	            "h3",
 	            null,
-	            "Taipei MRT Stations"
+	            "Taipei Public Transport"
+	        ),
+	        _react2.default.createElement(
+	            "label",
+	            { className: "layer-control", id: "youbike-layer-control" },
+	            _react2.default.createElement("input", { type: "checkbox", defaultChecked: "checked", onChange: function onChange(e) {
+	                    return props.openYoubikeLayer(e);
+	                } }),
+	            "YouBike Station Layer"
+	        ),
+	        _react2.default.createElement(
+	            "label",
+	            { className: "layer-control", id: "mrt-layer-control" },
+	            _react2.default.createElement("input", { type: "checkbox", defaultChecked: "checked", onChange: function onChange(e) {
+	                    return props.openMrtLayer(e);
+	                } }),
+	            "MRT Station Layer"
 	        ),
 	        _react2.default.createElement(
 	            "p",
 	            null,
-	            "Filter Entrances by Subway Line"
+	            "Filter Stations by MRT Line"
 	        ),
 	        _react2.default.createElement(
 	            "select",
@@ -52155,16 +52215,6 @@
 	                    line
 	                );
 	            }, this)
-	        ),
-	        _react2.default.createElement(
-	            "label",
-	            { className: "layer-control", id: "youbike-layer-control" },
-	            _react2.default.createElement("input", { type: "checkbox",
-	                defaultChecked: "checked",
-	                onChange: function onChange(e) {
-	                    return props.openYoubikeLayer(e);
-	                } }),
-	            "YouBike Station layer"
 	        )
 	    );
 	};
@@ -59474,6 +59524,102 @@
 
 /***/ },
 /* 444 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(module) {/* REACT HOT LOADER */ if (true) { (function () { var ReactHotAPI = __webpack_require__(79), RootInstanceProvider = __webpack_require__(87), ReactMount = __webpack_require__(89), React = __webpack_require__(179); module.makeHot = module.hot.data ? module.hot.data.makeHot : ReactHotAPI(function () { return RootInstanceProvider.getRootInstances(ReactMount); }, React); })(); } try { (function () {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _react = __webpack_require__(179);
+
+	var _react2 = _interopRequireDefault(_react);
+
+	var _rcSlider = __webpack_require__(272);
+
+	var _rcSlider2 = _interopRequireDefault(_rcSlider);
+
+	__webpack_require__(419);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var infoStyle = {
+		'textAlign': 'center',
+		'margin': '10px',
+		'color': 'white'
+	};
+
+	var TimeFilter = function (_React$Component) {
+		_inherits(TimeFilter, _React$Component);
+
+		function TimeFilter(props) {
+			_classCallCheck(this, TimeFilter);
+
+			var _this = _possibleConstructorReturn(this, (TimeFilter.__proto__ || Object.getPrototypeOf(TimeFilter)).call(this, props));
+
+			_this.state = {
+				index: 0,
+				date: null
+			};
+
+			_this.sliderChange = _this.sliderChange.bind(_this);
+			return _this;
+		}
+
+		_createClass(TimeFilter, [{
+			key: 'componentDidMount',
+			value: function componentDidMount() {
+				this.setState({
+					index: 0,
+					date: this.props.dataSet[0][0]
+				});
+			}
+		}, {
+			key: 'sliderChange',
+			value: function sliderChange(e) {
+				this.setState({
+					index: e,
+					date: this.props.dataSet[e][0]
+				});
+				this.props.callback(e);
+			}
+		}, {
+			key: 'render',
+			value: function render() {
+				return _react2.default.createElement(
+					'div',
+					{ id: 'wrapper-slider' },
+					_react2.default.createElement(
+						'p',
+						{ className: 'infoArea', style: infoStyle },
+						this.state.date
+					),
+					_react2.default.createElement(_rcSlider2.default, { min: 0, max: this.props.dataSet.length - 1, onChange: this.sliderChange })
+				);
+			}
+		}]);
+
+		return TimeFilter;
+	}(_react2.default.Component);
+
+	exports.default = TimeFilter;
+
+	/* REACT HOT LOADER */ }).call(this); } finally { if (true) { (function () { var foundReactClasses = module.hot.data && module.hot.data.foundReactClasses || false; if (module.exports && module.makeHot) { var makeExportsHot = __webpack_require__(429); if (makeExportsHot(module, __webpack_require__(179))) { foundReactClasses = true; } var shouldAcceptModule = true && foundReactClasses; if (shouldAcceptModule) { module.hot.accept(function (err) { if (err) { console.error("Cannot apply hot update to " + "TimeFilter.js" + ": " + err.message); } }); } } module.hot.dispose(function (data) { data.makeHot = module.makeHot; data.foundReactClasses = foundReactClasses; }); })(); } }
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)(module)))
+
+/***/ },
+/* 445 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -72767,7 +72913,7 @@
 	};
 
 /***/ },
-/* 445 */
+/* 446 */
 /***/ function(module, exports) {
 
 	module.exports = {
@@ -82009,13 +82155,13 @@
 	};
 
 /***/ },
-/* 446 */
+/* 447 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(447);
+	module.exports = __webpack_require__(448);
 
 /***/ },
-/* 447 */
+/* 448 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -82040,8 +82186,8 @@
 
 	var React = __webpack_require__(100);
 
-	var ReactTransitionGroup = __webpack_require__(448);
-	var ReactCSSTransitionGroupChild = __webpack_require__(456);
+	var ReactTransitionGroup = __webpack_require__(449);
+	var ReactCSSTransitionGroupChild = __webpack_require__(457);
 
 	function createTransitionTimeoutPropValidator(transitionType) {
 	  var timeoutPropName = 'transition' + transitionType + 'Timeout';
@@ -82124,7 +82270,7 @@
 	module.exports = ReactCSSTransitionGroup;
 
 /***/ },
-/* 448 */
+/* 449 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -82148,8 +82294,8 @@
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 	var React = __webpack_require__(100);
-	var ReactAddonsDOMDependencies = __webpack_require__(449);
-	var ReactTransitionChildMapping = __webpack_require__(454);
+	var ReactAddonsDOMDependencies = __webpack_require__(450);
+	var ReactTransitionChildMapping = __webpack_require__(455);
 
 	var emptyFunction = __webpack_require__(109);
 
@@ -82379,7 +82525,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)))
 
 /***/ },
-/* 449 */
+/* 450 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -82406,8 +82552,8 @@
 	};
 
 	if (process.env.NODE_ENV !== 'production') {
-	  var ReactPerf = __webpack_require__(450);
-	  var ReactTestUtils = __webpack_require__(451);
+	  var ReactPerf = __webpack_require__(451);
+	  var ReactTestUtils = __webpack_require__(452);
 
 	  exports.getReactPerf = function () {
 	    return ReactPerf;
@@ -82420,7 +82566,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)))
 
 /***/ },
-/* 450 */
+/* 451 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -82926,7 +83072,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)))
 
 /***/ },
-/* 451 */
+/* 452 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -82944,7 +83090,7 @@
 	var _prodInvariant = __webpack_require__(90),
 	    _assign = __webpack_require__(130);
 
-	var EventConstants = __webpack_require__(452);
+	var EventConstants = __webpack_require__(453);
 	var EventPluginHub = __webpack_require__(133);
 	var EventPluginRegistry = __webpack_require__(131);
 	var EventPropagators = __webpack_require__(185);
@@ -82955,7 +83101,7 @@
 	var ReactInstanceMap = __webpack_require__(149);
 	var ReactUpdates = __webpack_require__(162);
 	var SyntheticEvent = __webpack_require__(189);
-	var ReactShallowRenderer = __webpack_require__(453);
+	var ReactShallowRenderer = __webpack_require__(454);
 
 	var findDOMNode = __webpack_require__(264);
 	var invariant = __webpack_require__(99);
@@ -83343,7 +83489,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)))
 
 /***/ },
-/* 452 */
+/* 453 */
 /***/ function(module, exports) {
 
 	/**
@@ -83439,7 +83585,7 @@
 	module.exports = EventConstants;
 
 /***/ },
-/* 453 */
+/* 454 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -83579,7 +83725,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)))
 
 /***/ },
-/* 454 */
+/* 455 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -83594,7 +83740,7 @@
 
 	'use strict';
 
-	var flattenChildren = __webpack_require__(455);
+	var flattenChildren = __webpack_require__(456);
 
 	var ReactTransitionChildMapping = {
 	  /**
@@ -83687,7 +83833,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)))
 
 /***/ },
-/* 455 */
+/* 456 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {/**
@@ -83768,7 +83914,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)))
 
 /***/ },
-/* 456 */
+/* 457 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -83784,10 +83930,10 @@
 	'use strict';
 
 	var React = __webpack_require__(100);
-	var ReactAddonsDOMDependencies = __webpack_require__(449);
+	var ReactAddonsDOMDependencies = __webpack_require__(450);
 
-	var CSSCore = __webpack_require__(457);
-	var ReactTransitionEvents = __webpack_require__(458);
+	var CSSCore = __webpack_require__(458);
+	var ReactTransitionEvents = __webpack_require__(459);
 
 	var onlyChild = __webpack_require__(128);
 
@@ -83939,7 +84085,7 @@
 	module.exports = ReactCSSTransitionGroupChild;
 
 /***/ },
-/* 457 */
+/* 458 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -84066,7 +84212,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)))
 
 /***/ },
-/* 458 */
+/* 459 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -84081,7 +84227,7 @@
 
 	'use strict';
 
-	var ExecutionEnvironment = __webpack_require__(459);
+	var ExecutionEnvironment = __webpack_require__(460);
 
 	var getVendorPrefixedEventName = __webpack_require__(141);
 
@@ -84143,7 +84289,7 @@
 	module.exports = ReactTransitionEvents;
 
 /***/ },
-/* 459 */
+/* 460 */
 /***/ function(module, exports) {
 
 	/**
@@ -84183,13 +84329,13 @@
 	module.exports = ExecutionEnvironment;
 
 /***/ },
-/* 460 */
+/* 461 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(461);
+	var content = __webpack_require__(462);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(422)(content, {});
@@ -84198,8 +84344,8 @@
 	if(true) {
 		// When the styles change, update the <style> tags
 		if(!content.locals) {
-			module.hot.accept(461, function() {
-				var newContent = __webpack_require__(461);
+			module.hot.accept(462, function() {
+				var newContent = __webpack_require__(462);
 				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 				update(newContent);
 			});
@@ -84209,7 +84355,7 @@
 	}
 
 /***/ },
-/* 461 */
+/* 462 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(421)();
